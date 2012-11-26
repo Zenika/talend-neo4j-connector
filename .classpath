@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/geronimo-jta_1.1_spec-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/lucene-core-3.5.0.jar"/>
+	<classpathentry kind="lib" path="lib/neo4j-cypher-1.9.M01.jar"/>
+	<classpathentry kind="lib" path="lib/neo4j-graph-algo-1.9.M01.jar"/>
+	<classpathentry kind="lib" path="lib/neo4j-graph-matching-1.9.M01.jar"/>
+	<classpathentry kind="lib" path="lib/neo4j-jmx-1.9.M01.jar"/>
+	<classpathentry kind="lib" path="lib/neo4j-kernel-1.9.M01.jar"/>
+	<classpathentry kind="lib" path="lib/neo4j-lucene-index-1.9.M01.jar"/>
+	<classpathentry kind="lib" path="lib/neo4j-shell-1.9.M01.jar"/>
+	<classpathentry kind="lib" path="lib/neo4j-udc-1.9.M01.jar"/>
+	<classpathentry kind="lib" path="lib/org.apache.servicemix.bundles.jline-0.9.94_1.jar"/>
+	<classpathentry kind="lib" path="lib/scala-library-2.9.1-1.jar"/>
+	<classpathentry kind="lib" path="lib/server-api-1.9.M01.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
