@@ -3,6 +3,14 @@
 		org.talend.designer.codegen.config.CodeGeneratorArgument
 		org.talend.core.model.process.INode
 		org.talend.core.model.process.ElementParameterParser
+		org.talend.core.model.metadata.IMetadataColumn
+		org.talend.core.model.metadata.IMetadataTable
+		java.util.List
+		java.util.ArrayList
+		java.util.Set
+		java.util.HashSet
+		java.util.Map
+		java.util.HashMap
 	"
 %>
 <% 
@@ -11,7 +19,18 @@
     String cid = node.getUniqueName();
     
     String databasePath = ElementParameterParser.getValue(node, "__DATABASE_PATH__");
+    String query = ElementParameterParser.getValue(node, "__QUERY__");
+    
+    
 %>
 
 
 org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(<%=databasePath%>);
+
+org.neo4j.cypher.ExecutionEngine engine = new org.neo4j.cypher.ExecutionEngine(databaseService_<%=cid%>);
+org.neo4j.cypher.ExecutionResult result = engine.execute(<%=query%>);
+
+java.util.Iterator<java.util.Map<String, Object>> resultIterator_<%=cid%> = result.javaIterator();
+
+int nb_line_<%=cid%> = 0;
+while (resultIterator_<%=cid%>.hasNext()) {
