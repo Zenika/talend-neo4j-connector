@@ -59,16 +59,27 @@
 	java.util.Map<String, Object> row_<%=cid%> = resultIterator_<%=cid%>.next();
 <%
 	for (Map.Entry<String, List<IMetadataColumn>> columnsByPrefix : columnsByPrefixes.entrySet()) {
-	String prefix = columnsByPrefix.getKey();	
-%>
-		if (row_<%=cid%>.get("<%=prefix%>") != null && row_<%=cid%>.get("<%=prefix%>") instanceof org.neo4j.graphdb.PropertyContainer) {
-			org.neo4j.graphdb.PropertyContainer propertyContainer_<%=cid%> = (org.neo4j.graphdb.PropertyContainer) row_<%=cid%>.get("<%=prefix%>");
-			<%
-			for (IMetadataColumn column : columnsByPrefix.getValue()) {
-				String propertyKey = column.getLabel().substring(prefix.length() + 1);
-				String cType = column.getTalendType();				
-				if (outgoingConnName != null) {
+		String prefix = columnsByPrefix.getKey();
+		for (IMetadataColumn column : columnsByPrefix.getValue()) {
+			String propertyKey;
+			// If there are no prefix
+			if (column.getLabel().length() == prefix.length()) {
+				propertyKey = prefix;
+			} else {
+				propertyKey = column.getLabel().substring(prefix.length() + 1);
+			}
+			String cType = column.getTalendType();				
+			if (outgoingConnName != null && cType.equals("id_List")) {
 			%>
+				if (row_<%=cid%>.get("<%=column%>") != null && row_<%=cid%>.get("<%=column%>") instanceof java.util.Collection<?>) {				
+					java.util.Collection<?> relationships = (java.util.Collection<?>) row_<%=cid%>.get("<%=column%>");				
+					<%=outgoingConnName%>.<%=column%> = new java.util.ArrayList<Object>(relationships);
+				}
+			<%
+			} else if (outgoingConnName != null) {
+			%>
+				if (row_<%=cid%>.get("<%=prefix%>") != null && row_<%=cid%>.get("<%=prefix%>") instanceof org.neo4j.graphdb.PropertyContainer) {
+					org.neo4j.graphdb.PropertyContainer propertyContainer_<%=cid%> = (org.neo4j.graphdb.PropertyContainer) row_<%=cid%>.get("<%=prefix%>");
 					<%
 					if (cType.equals("id_String")) {
 					%>
@@ -118,12 +129,12 @@
 					%>
 						<%=outgoingConnName%>.<%=column%> = propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
 					<%
-					}								
-				}
+					}
+					%>
+				}	
+			<%
 			}
-%>
-		}			
-<%			
-	}	
+		}
+	}
 %>
 ++nb_line_<%=cid%>;
