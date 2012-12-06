@@ -20,8 +20,7 @@
     
     String databasePath = ElementParameterParser.getValue(node, "__DATABASE_PATH__");
     String query = ElementParameterParser.getValue(node, "__QUERY__");
-    
-    
+
 %>
 
 

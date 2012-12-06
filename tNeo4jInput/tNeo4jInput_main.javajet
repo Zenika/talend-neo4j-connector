@@ -61,8 +61,8 @@
 	for (Map.Entry<String, List<IMetadataColumn>> columnsByPrefix : columnsByPrefixes.entrySet()) {
 	String prefix = columnsByPrefix.getKey();	
 %>
-		if (row_<%=cid%>.get("<%=prefix%>") != null && row_<%=cid%>.get("<%=prefix%>") instanceof org.neo4j.graphdb.Node) {
-			org.neo4j.graphdb.Node node_<%=cid%> = (org.neo4j.graphdb.Node) row_<%=cid%>.get("<%=prefix%>");
+		if (row_<%=cid%>.get("<%=prefix%>") != null && row_<%=cid%>.get("<%=prefix%>") instanceof org.neo4j.graphdb.PropertyContainer) {
+			org.neo4j.graphdb.PropertyContainer propertyContainer_<%=cid%> = (org.neo4j.graphdb.PropertyContainer) row_<%=cid%>.get("<%=prefix%>");
 			<%
 			for (IMetadataColumn column : columnsByPrefix.getValue()) {
 				String propertyKey = column.getLabel().substring(prefix.length() + 1);
@@ -72,51 +72,51 @@
 					<%
 					if (cType.equals("id_String")) {
 					%>
-						if (node_<%=cid%>.getProperty("<%=propertyKey%>") instanceof String || node_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = (String) node_<%=cid%>.getProperty("<%=propertyKey%>");
+						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof String || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
+							<%=outgoingConnName%>.<%=column%> = (String) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
 						} else {
-							<%=outgoingConnName%>.<%=column%> = node_<%=cid%>.getProperty("<%=propertyKey%>").toString();
+							<%=outgoingConnName%>.<%=column%> = propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString();
 						}
 					<%
 					} else if (cType.equals("Id_Long")) {
 					%>
-						if (node_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Long || node_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = (Long) node_<%=cid%>.getProperty("<%=propertyKey%>");
-						} else if (node_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Double) {
-							<%=outgoingConnName%>.<%=column%> = (node_<%=cid%>.getProperty("<%=propertyKey%>") == null) ? null : Math.round((Double) node_<%=cid%>.getProperty("<%=propertyKey%>"));
+						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Long || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
+							<%=outgoingConnName%>.<%=column%> = (Long) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
+						} else if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Double) {
+							<%=outgoingConnName%>.<%=column%> = (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) ? null : Math.round((Double) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>"));
 						} else {
-							<%=outgoingConnName%>.<%=column%> = new Long(node_<%=cid%>.getProperty("<%=propertyKey%>").toString());
+							<%=outgoingConnName%>.<%=column%> = new Long(propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString());
 						}
 					<%
 					} else if (cType.equals("id_Integer")) {
 					%>
-						if (node_<%=cid%>.getProperty("<%=propertyKey%>") intanceof Integer || node_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = (Interger) node_<%=cid%>.getProperty("<%=propertyKey%>");
-						} else if (node_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Double) {
-							<%=outgoingConnName%>.<%=column%> = (node_<%=cid%>.getProperty("<%=propertyKey%>") == null) ? null : (int) Math.round((Double) node_<%=cid%>.getProperty("<%=propertyKey%>"));
+						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") intanceof Integer || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
+							<%=outgoingConnName%>.<%=column%> = (Interger) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
+						} else if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Double) {
+							<%=outgoingConnName%>.<%=column%> = (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) ? null : (int) Math.round((Double) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>"));
 						} else {
-							<%=outgoingConnName%>.<%=column%> = new Integer(node_<%=cid%>.getProperty("<%=propertyKey%>").toString();
+							<%=outgoingConnName%>.<%=column%> = new Integer(propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString();
 						}
 					<%
 					} else if (cType.equals("id_Float")) {
 					%>
-						if (node_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
+						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
 							<%=outgoingConnName%>.<%=column%> = null;
 						} else {
-							<%=outgoingConnName%>.<%=column%> = new Boolean(node_<%=cid%>.getProperty("<%=propertyKey%>").toString();
+							<%=outgoingConnName%>.<%=column%> = new Boolean(propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString();
 						}
 					<%
 					} else if (cType.equals("id_Boolean")) {
 					%>
-						if (node_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Boolean || node_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = (Boolean) node_<%=cid%>.getProperty("<%=propertyKey%>");
+						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Boolean || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
+							<%=outgoingConnName%>.<%=column%> = (Boolean) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
 						} else {
-							<%=outgoingConnName%>.<%=column%> = new Boolean(node_<%=cid%>.getProperty("<%=propertyKey%>").toString());
+							<%=outgoingConnName%>.<%=column%> = new Boolean(propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString());
 						}
 					<%
 					} else if (cType.equals("id_Object")) {
 					%>
-						<%=outgoingConnName%>.<%=column%> = node_<%=cid%>.getProperty("<%=propertyKey%>");
+						<%=outgoingConnName%>.<%=column%> = propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
 					<%
 					}								
 				}
