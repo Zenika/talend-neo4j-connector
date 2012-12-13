@@ -30,7 +30,7 @@
     } else {
     	String databasePath = ElementParameterParser.getValue(node, "__DATABASE_PATH__");
 	%>
-		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase("<%=databasePath%>");
+		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(<%=databasePath%>);
 	<%    
     }
 %>
