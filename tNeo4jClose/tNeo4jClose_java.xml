@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<COMPONENT> 
+  <HEADER AUTHOR="Antoine Rouaze" COMPATIBILITY="ALL" DATA_AUTO_PROPAGATE="false" PLATEFORM="ALL" RELEASE_DATE="20080229A" SERIAL="" STARTABLE="true" STATUS="ALPHA" VERSION="0.102"> 
+    <SIGNATURE/> 
+  </HEADER>  
+  <FAMILIES> 
+    <FAMILY>NoSQL/Neo4j</FAMILY> 
+  </FAMILIES>  
+  <DOCUMENTATION> 
+    <URL/> 
+  </DOCUMENTATION>  
+  <CONNECTORS>
+  	<CONNECTOR CTYPE="SUBJOB_OK" MAX_INPUT="1" MAX_OUTPUT="1" MIN_INPUT="0" MIN_OUTPUT="0"/>
+  	<CONNECTOR CTYPE="SUBJOB_ERROR" MAX_INPUT="1" MAX_OUTPUT="1" MIN_INPUT="0" MIN_OUTPUT="0"/>
+  	<CONNECTOR CTYPE="COMPONENT_OK" MAX_INPUT="1" MAX_OUTPUT="1" MIN_INPUT="0" MIN_OUTPUT="0"/>
+  	<CONNECTOR CTYPE="COMPONENT_ERROR" MAX_INPUT="1" MAX_OUTPUT="1" MIN_INPUT="0" MIN_OUTPUT="0"/>  
+    <CONNECTOR CTYPE="FLOW" MAX_INPUT="0" MAX_OUTPUT="0" MIN_INPUT="0" MIN_OUTPUT="0"/> 
+  </CONNECTORS>  
+  <PARAMETERS> 
+    <PARAMETER NAME="CONNECTION" FIELD="COMPONENT_LIST" FILTER="tNeo4jConnection" NUM_ROW="1"/>
+  </PARAMETERS>  
+  <ADVANCED_PARAMETERS> 
+    <PARAMETER FIELD="TEXT" NAME="PROPERTYADVANCED" NUM_ROW="1"/> 
+  </ADVANCED_PARAMETERS>  
+  <CODEGENERATION> 
+    <IMPORTS> 
+      <IMPORT MODULE="concurrentlinkedhashmap-lru-1.3.1.jar" NAME="concurrentlinkedhashmap-lru-1.3.1" REQUIRED="true"/>  
+      <IMPORT MODULE="geronimo-jta_1.1_spec-1.1.1.jar" NAME="geronimo-jta_1.1_spec-1.1.1" REQUIRED="true"/>  
+      <IMPORT MODULE="lucene-core-3.5.0.jar" NAME="lucene-core-3.5.0" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-cypher-1.9.M01.jar" NAME="neo4j-cypher-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-graph-algo-1.9.M01.jar" NAME="neo4j-graph-algo-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-graph-matching-1.9.M01.jar" NAME="neo4j-graph-matching-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-jmx-1.9.M01.jar" NAME="neo4j-jmx-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-kernel-1.9.M01.jar" NAME="neo4j-kernel-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-lucene-index-1.9.M01.jar" NAME="neo4j-lucene-index-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-shell-1.9.M01.jar" NAME="neo4j-shell-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-udc-1.9.M01.jar" NAME="neo4j-udc-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="org.apache.servicemix.bundles.jline-0.9.94_1.jar" NAME="org.apache.servicemix.bundles.jline-0.9.94_1" REQUIRED="true"/>  
+      <IMPORT MODULE="scala-library-2.9.1-1.jar" NAME="scala-library-2.9.1-1" REQUIRED="true"/>  
+      <IMPORT MODULE="server-api-1.9.M01.jar" NAME="server-api-1.9.M01" REQUIRED="true"/> 
+    </IMPORTS> 
+  </CODEGENERATION>  
+  <RETURNS> 
+    <RETURN AVAILABILITY="AFTER" NAME="NB_LINE" TYPE="id_Integer"/> 
+  </RETURNS> 
+</COMPONENT>
