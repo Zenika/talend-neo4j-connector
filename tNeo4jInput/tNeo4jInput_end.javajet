@@ -25,7 +25,7 @@
 <%
 	if (!useExistingConnection) {
 	%>
-		
+		databaseService_<%=cid%>.shutdown();
 	<%
 	} else {
 		boolean shutdownDb = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__SHUTDOWN_DB__"));
