@@ -1,0 +1,107 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.IMetadataColumn 
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		org.talend.core.model.metadata.types.JavaTypesManager
+		org.talend.core.model.metadata.types.JavaType
+		java.util.List
+		java.util.ArrayList
+		java.util.HashMap 
+    	java.util.Map		
+	" 
+%>
+<% 
+	class Utils {
+        public List<Map<String, String>> extractIndex(String index) {
+            List<Map<String, String>> indexList = new ArrayList<Map<String, String>>();            
+            index = index.replaceAll("(\\[( )*\\{( )*)|(( )*\\}( )*\\])", "");
+            String[] indexes = index.split("\\}( )*,( )*\\{");
+            for (String indexEntry : indexes) {
+                Map<String, String> indexMap = new HashMap<String, String>();
+                String[] properties = indexEntry.split("( )*,( )*");
+                for (String property : properties) {
+                    String[] keysValues = property.split("( )*:( )*");
+                    String key = keysValues[0];
+                    String value = keysValues[1].replaceAll("\"", "");
+                    indexMap.put(key, value);
+                }
+                if (indexMap.get("name") == null || !indexMap.get("name").isEmpty() || indexMap.get("key") == null || !indexMap.get("key").isEmpty()) {
+                	throw new RuntimeException("Missing property in index declaration");
+                }
+                indexList.add(indexMap);
+            }            
+            return indexList;
+        }
+    }
+
+    CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+    INode node = (INode)codeGenArgument.getArgument();
+    String cid = node.getUniqueName();
+    String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
+    
+    Utils utils = new Utils();
+    
+    List<IMetadataColumn> columnList = null;
+    List<IMetadataTable> metadatas = node.getMetadataList();
+    
+    if (metadatas != null && metadatas.size() > 0) {
+    	IMetadataTable metadata = metadatas.get(0);
+    	if (metadata != null) {
+    		columnList = metadata.getListColumns();
+    	}
+    }	
+    
+    List<? extends IConnection> inputs = node.getIncomingConnections();
+    List<? extends IConnection> outputs = node.getOutgoingSortedConnections();
+    String incomingConnName = null;
+    String outgoingConnName = null;
+    
+    if (inputs.size() > 0) {
+    	IConnection in = inputs.get(0);
+    	incomingConnName = in.getName();
+    }
+    
+    if (outputs.size() > 0) {
+    	IConnection out = outputs.get(0);
+    	outgoingConnName = out.getName();
+    }
+    
+    %>    
+    org.neo4j.graphdb.Node node = databaseService_<%=cid%>.createNode();
+    <%
+    
+    for (IMetadataColumn column : columnList) {
+    	if (outgoingConnName != null) {
+    	%>
+    	<%=outgoingConnName%>.<%=column%> = <%=incomingConnName%>.<%=column%>;
+    	<%
+    	}
+    	%>
+    	node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+    	<%
+    	String comment = column.getComment();
+    	if (comment != null && !comment.isEmpty() && !comment.matches("\\[( )*(\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*,( )*)*\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*\\]")) {
+    		List<Map<String, String>> indexes = utils.extractIndex(comment);
+    		for (Map<String, String> index : indexes) {
+    			%>
+    			org.neo4j.graphdb.index.Index<Node> indexNode = databaseService_<%=cid%>.index().forNodes(index.get("name"));
+    			<%
+    			if (index.get("value") == null || !index.get("value").isEmpty()) {
+    				%>
+    				index.add(node, <%=index%>.get("key"), <%=incomingConnName%>.<%=column%>);
+    				<%
+    			} else {
+    				%>
+    				indexNode.add(node, <%=index%>.get("key"), <%=index%>.get("value"));
+    				<%
+    			}
+    		}
+    	}
+    }
+%>
+++nb_line_<%=cid %>;
