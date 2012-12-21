@@ -37,6 +37,16 @@
             }            
             return indexList;
         }
+        
+        public Map<String, String> extractRelationship(String relationship) {
+            Map<String, String> relationshipMap = new HashMap<String, String>();
+            relationship = relationship.replaceAll("([a-zA-Z0-9]*( )*:( )*\\{)|(\\}|(\\{))", "");
+            for (String entry : relationship.split("( )*,( )*")) {
+                String[] keyValue = entry.split("( )*:( )*");
+                relationshipMap.put(keyValue[0], keyValue[1].replaceAll("\"", ""));
+            }
+            return relationshipMap;
+        }
     }
 
     CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
@@ -85,29 +95,42 @@
     	node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
     	<%
     	String comment = column.getComment();
-    	if (comment != null && !comment.isEmpty() && comment.matches("\\[( )*(\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*,( )*)*\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*\\]")) {
-    		List<Map<String, String>> indexes = utils.extractIndex(comment);
-    		for (Map<String, String> index : indexes) {
-    			String name = index.get("name");
-    			String key = index.get("key");
-    			%>
-    			{
-	    			org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=name%> = databaseService_<%=cid%>.index().forNodes("<%=name%>");
-	    			<%
-	    			if (index.get("value") == null || index.get("value").isEmpty()) {
-	    				%>
-	    				indexNode_<%=name%>.add(node, "<%=key%>", <%=incomingConnName%>.<%=column%>);
-	    				<%
-	    			} else {
-	    				String value = index.get("value");
-	    				%>
-	    				indexNode_<%=name%>.add(node, "<%=key%>", "<%=value%>");
-	    				<%
+    	if (comment != null && !comment.isEmpty()) {
+    		if (comment.matches("\\[( )*(\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*,( )*)*\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*\\]")){
+	    		List<Map<String, String>> indexes = utils.extractIndex(comment);
+	    		for (Map<String, String> index : indexes) {
+	    			String name = index.get("name");
+	    			String key = index.get("key");
+	    			%>
+	    			{
+		    			org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=name%> = databaseService_<%=cid%>.index().forNodes("<%=name%>");
+		    			<%
+		    			if (index.get("value") == null || index.get("value").isEmpty()) {
+		    				%>
+		    				indexNode_<%=name%>.add(node, "<%=key%>", <%=incomingConnName%>.<%=column%>);
+		    				<%
+		    			} else {
+		    				String value = index.get("value");
+		    				%>
+		    				indexNode_<%=name%>.add(node, "<%=key%>", "<%=value%>");
+		    				<%
+		    			}
+	    			%>
 	    			}
-    			%>
-    			}
-    			<%
-    		}
+	    			<%
+	    		}
+	    	} else if (comment.contains("relationType")) {
+				Map<String, String> relationship = utils.extractRelationship(comment);				
+				%>
+				org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode = databaseService_<%=cid%>.index().forNodes("<%=relationship.get("name")%>");				
+				org.neo4j.graphdb.Node endNode = indexNode.get("<%=relationship.get("key")%>", <%=incomingConnName%>.<%=column%>).getSingle();
+				node.createRelationshipTo(endNode, new org.neo4j.graphdb.RelationshipType() {					
+					public String name() {
+						return "<%=relationship.get("relationType")%>";
+					}
+				});
+				<%
+	    	}
     	}
     }
 %>
