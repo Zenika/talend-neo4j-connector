@@ -30,7 +30,7 @@
                     String value = keysValues[1].replaceAll("\"", "");
                     indexMap.put(key, value);
                 }
-                if (indexMap.get("name") == null || !indexMap.get("name").isEmpty() || indexMap.get("key") == null || !indexMap.get("key").isEmpty()) {
+                if (indexMap.get("name") == null || indexMap.get("name").isEmpty() || indexMap.get("key") == null || indexMap.get("key").isEmpty()) {
                 	throw new RuntimeException("Missing property in index declaration");
                 }
                 indexList.add(indexMap);
@@ -85,21 +85,28 @@
     	node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
     	<%
     	String comment = column.getComment();
-    	if (comment != null && !comment.isEmpty() && !comment.matches("\\[( )*(\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*,( )*)*\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*\\]")) {
+    	if (comment != null && !comment.isEmpty() && comment.matches("\\[( )*(\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*,( )*)*\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*\\]")) {
     		List<Map<String, String>> indexes = utils.extractIndex(comment);
     		for (Map<String, String> index : indexes) {
+    			String name = index.get("name");
+    			String key = index.get("key");
     			%>
-    			org.neo4j.graphdb.index.Index<Node> indexNode = databaseService_<%=cid%>.index().forNodes(index.get("name"));
-    			<%
-    			if (index.get("value") == null || !index.get("value").isEmpty()) {
-    				%>
-    				index.add(node, <%=index%>.get("key"), <%=incomingConnName%>.<%=column%>);
-    				<%
-    			} else {
-    				%>
-    				indexNode.add(node, <%=index%>.get("key"), <%=index%>.get("value"));
-    				<%
+    			{
+	    			org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=name%> = databaseService_<%=cid%>.index().forNodes("<%=name%>");
+	    			<%
+	    			if (index.get("value") == null || index.get("value").isEmpty()) {
+	    				%>
+	    				indexNode_<%=name%>.add(node, "<%=key%>", <%=incomingConnName%>.<%=column%>);
+	    				<%
+	    			} else {
+	    				String value = index.get("value");
+	    				%>
+	    				indexNode_<%=name%>.add(node, "<%=key%>", "<%=value%>");
+	    				<%
+	    			}
+    			%>
     			}
+    			<%
     		}
     	}
     }
