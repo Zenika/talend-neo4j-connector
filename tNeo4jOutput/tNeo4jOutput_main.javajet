@@ -4,57 +4,25 @@
 		org.talend.core.model.process.ElementParameterParser 
 		org.talend.core.model.metadata.IMetadataTable 
 		org.talend.core.model.metadata.IMetadataColumn 
-		org.talend.core.model.process.IConnection
-		org.talend.core.model.process.IConnectionCategory
-		org.talend.designer.codegen.config.CodeGeneratorArgument
-		org.talend.core.model.metadata.types.JavaTypesManager
-		org.talend.core.model.metadata.types.JavaType
-		java.util.List
-		java.util.ArrayList
+		org.talend.core.model.process.IConnection 
+		org.talend.core.model.process.IConnectionCategory 
+		org.talend.designer.codegen.config.CodeGeneratorArgument 
+		org.talend.core.model.metadata.types.JavaTypesManager 
+		org.talend.core.model.metadata.types.JavaType 
+		org.talend.designer.neo4j.data.Index 
+		org.talend.designer.neo4j.data.Relationship 
+		org.talend.designer.neo4j.ui.editor.MetadataColumnExt 
+		java.util.List 
+		java.util.ArrayList 
 		java.util.HashMap 
     	java.util.Map		
 	" 
 %>
 <% 
-	class Utils {
-        public List<Map<String, String>> extractIndex(String index) {
-            List<Map<String, String>> indexList = new ArrayList<Map<String, String>>();            
-            index = index.replaceAll("(\\[( )*\\{( )*)|(( )*\\}( )*\\])", "");
-            String[] indexes = index.split("\\}( )*,( )*\\{");
-            for (String indexEntry : indexes) {
-                Map<String, String> indexMap = new HashMap<String, String>();
-                String[] properties = indexEntry.split("( )*,( )*");
-                for (String property : properties) {
-                    String[] keysValues = property.split("( )*:( )*");
-                    String key = keysValues[0];
-                    String value = keysValues[1].replaceAll("\"", "");
-                    indexMap.put(key, value);
-                }
-                if (indexMap.get("name") == null || indexMap.get("name").isEmpty() || indexMap.get("key") == null || indexMap.get("key").isEmpty()) {
-                	throw new RuntimeException("Missing property in index declaration");
-                }
-                indexList.add(indexMap);
-            }            
-            return indexList;
-        }
-        
-        public Map<String, String> extractRelationship(String relationship) {
-            Map<String, String> relationshipMap = new HashMap<String, String>();
-            relationship = relationship.replaceAll("([a-zA-Z0-9]*( )*:( )*\\{)|(\\}|(\\{))", "");
-            for (String entry : relationship.split("( )*,( )*")) {
-                String[] keyValue = entry.split("( )*:( )*");
-                relationshipMap.put(keyValue[0], keyValue[1].replaceAll("\"", ""));
-            }
-            return relationshipMap;
-        }
-    }
-
     CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
     INode node = (INode)codeGenArgument.getArgument();
     String cid = node.getUniqueName();
     String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
-    
-    Utils utils = new Utils();
     
     List<IMetadataColumn> columnList = null;
     List<IMetadataTable> metadatas = node.getMetadataList();
@@ -91,47 +59,93 @@
     	<%=outgoingConnName%>.<%=column%> = <%=incomingConnName%>.<%=column%>;
     	<%
     	}
+    	if (column.isNullable()) {
     	%>
-    	node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+    		if (<%=incomingConnName%>.<%=column%> != null) {
+    			node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+    		}
     	<%
-    	String comment = column.getComment();
-    	if (comment != null && !comment.isEmpty()) {
-    		if (comment.matches("\\[( )*(\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*,( )*)*\\{( )*([a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"( )*,( )*)*[a-zA-Z0-9]*( )*:( )*\\\"[a-zA-Z0-9]*\\\"\\}( )*\\]")){
-	    		List<Map<String, String>> indexes = utils.extractIndex(comment);
-	    		for (Map<String, String> index : indexes) {
-	    			String name = index.get("name");
-	    			String key = index.get("key");
-	    			%>
-	    			{
-		    			org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=name%> = databaseService_<%=cid%>.index().forNodes("<%=name%>");
-		    			<%
-		    			if (index.get("value") == null || index.get("value").isEmpty()) {
-		    				%>
-		    				indexNode_<%=name%>.add(node, "<%=key%>", <%=incomingConnName%>.<%=column%>);
-		    				<%
-		    			} else {
-		    				String value = index.get("value");
-		    				%>
-		    				indexNode_<%=name%>.add(node, "<%=key%>", "<%=value%>");
-		    				<%
-		    			}
-	    			%>
-	    			}
+    	} else {
+    	%>
+    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+    	<%
+    	}
+    	if (column instanceof MetadataColumnExt) {
+    		MetadataColumnExt columnExt = (MetadataColumnExt) column;
+    		for (Index index : columnExt.getIndexes()) {
+    			%>
+    			{
+	    			org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=index.getName()%> = databaseService_<%=cid%>.index().forNodes("<%=index.getName()%>");
 	    			<%
-	    		}
-	    	} else if (comment.contains("relationType")) {
-				Map<String, String> relationship = utils.extractRelationship(comment);				
-				%>
-				org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode = databaseService_<%=cid%>.index().forNodes("<%=relationship.get("name")%>");				
-				org.neo4j.graphdb.Node endNode = indexNode.get("<%=relationship.get("key")%>", <%=incomingConnName%>.<%=column%>).getSingle();
-				node.createRelationshipTo(endNode, new org.neo4j.graphdb.RelationshipType() {					
-					public String name() {
-						return "<%=relationship.get("relationType")%>";
+	    			if (index.getValue() == null || index.getValue().isEmpty()) {
+					%>		    				
+						indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);		    			
+					<%
+	    			} else {
+					%>
+						indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", "<%=index.getValue()%>");				
+					<%
+	    			}
+	    			%>
+    			}
+    			<%
+    		}
+    		for (Relationship relationship : columnExt.getRelationships()) {
+    			%>
+    			{
+    				org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode = databaseService_<%=cid%>.index().forNodes("<%=relationship.getIndexName()%>");
+    				org.neo4j.graphdb.Node endNode = null;
+    				<%
+    				if (relationship.getValue() != null && !relationship.getValue().isEmpty()) {
+    				%>
+    					endNode = indexNode.get("<%=relationship.getKey()%>", "<%=relationship.getValue()%>").getSingle();
+    				<%
+    				} else if (column.isNullable()) {
+    				%>
+    					if (<%=incomingConnName%>.<%=column%> != null) {
+    						endNode = indexNode.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+    					}
+    				<%
+    				} else {
+    				%>
+    					endNode = indexNode.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+    				<%
+    				}
+    				%>
+    				if (endNode != null) {
+    					<%
+    					switch (relationship.getDirection()) {    					
+    						case OUTGOING :
+	    						%>		 	
+			    				node.createRelationshipTo(endNode, new org.neo4j.graphdb.RelationshipType() {          	
+			            			public String name() {
+										return "<%=relationship.getType()%>";
+									}
+								});
+								<%
+								break;
+							case INCOMMING :
+								%>
+								endNode.createRelationshipTo(node, new org.neo4j.graphdb.RelationshipType() {          	
+			            			public String name() {
+										return "<%=relationship.getType()%>";
+									}
+								});
+								<%
+								break;
+						}
+						%>			
 					}
-				});
-				<%
-	    	}
+    			}
+    			<%
+    		}
     	}
     }
 %>
+if (counter % 30000 == 0) {
+	tx.success();
+	tx.finish();
+	tx = databaseService_<%=cid%>.beginTx();
+}
+counter++;
 ++nb_line_<%=cid %>;
