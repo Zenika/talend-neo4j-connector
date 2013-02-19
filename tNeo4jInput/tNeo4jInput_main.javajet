@@ -47,7 +47,7 @@
     // Build mapping map
     Map<String, List<IMetadataColumn>> columnsByPrefixes = new HashMap<String, List<IMetadataColumn>>();
     for (IMetadataColumn column : columns) {
-    	String columnPrefix = column.getLabel().split("_")[0];
+    	String columnPrefix = column.getOriginalDbColumnName().split("\\.")[0];
     	List<IMetadataColumn> tmpColumn = columnsByPrefixes.get(columnPrefix);
     	if (tmpColumn == null) {
     		tmpColumn = new ArrayList<IMetadataColumn>();
@@ -63,12 +63,12 @@
 		for (IMetadataColumn column : columnsByPrefix.getValue()) {
 			String propertyKey;
 			// If there are no prefix
-			if (column.getLabel().length() == prefix.length()) {
+			if (column.getOriginalDbColumnName().length() == prefix.length()) {
 				propertyKey = prefix;
 			} else {
-				propertyKey = column.getLabel().substring(prefix.length() + 1);
+				propertyKey = column.getOriginalDbColumnName().substring(prefix.length() + 1);
 			}
-			String cType = column.getTalendType();				
+			String cType = column.getTalendType();
 			if (outgoingConnName != null && cType.equals("id_List")) {
 			%>
 				if (row_<%=cid%>.get("<%=column%>") != null && row_<%=cid%>.get("<%=column%>") instanceof java.util.Collection<?>) {				
