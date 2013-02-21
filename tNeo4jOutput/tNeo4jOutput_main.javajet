@@ -9,6 +9,7 @@
 		org.talend.designer.codegen.config.CodeGeneratorArgument 
 		org.talend.core.model.metadata.types.JavaTypesManager 
 		org.talend.core.model.metadata.types.JavaType 
+		org.talend.designer.neo4j.data.Neo4jData 
 		org.talend.designer.neo4j.data.Index 
 		org.talend.designer.neo4j.data.Relationship 
 		org.talend.designer.neo4j.ui.editor.MetadataColumnExt 
@@ -81,7 +82,8 @@
     	}
     	if (column instanceof MetadataColumnExt) {
     		MetadataColumnExt columnExt = (MetadataColumnExt) column;
-    		for (Index index : columnExt.getIndexes()) {
+    		Neo4jData data = columnExt.getData();
+    		for (Index index : data.getIndexes()) {
     			%>
     			{
 	    			org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=index.getName()%> = databaseService_<%=cid%>.index().forNodes("<%=index.getName()%>");
@@ -99,7 +101,7 @@
     			}
     			<%
     		}
-    		for (Relationship relationship : columnExt.getRelationships()) {
+    		for (Relationship relationship : data.getRelationships()) {
     			%>
     			{
     				org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode = databaseService_<%=cid%>.index().forNodes("<%=relationship.getIndexName()%>");

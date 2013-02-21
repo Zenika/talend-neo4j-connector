@@ -9,8 +9,10 @@
 		org.talend.designer.codegen.config.CodeGeneratorArgument
 		org.talend.core.model.metadata.types.JavaTypesManager
 		org.talend.core.model.metadata.types.JavaType
+		org.talend.designer.neo4j.data.Neo4jData
 		java.util.List 
-    	java.util.Map		
+    	java.util.Map
+    	java.util.ArrayList		
 	" 
 %>
 <% 
@@ -19,7 +21,16 @@
     String cid = node.getUniqueName();
     
     boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
-        
+    List<Map<String, String>> values = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__VALUES__");
+    
+    List<String> autoIndexedColumns = new ArrayList<String>();
+    for (Map<String, String> value : values) {
+    	boolean autoIndexed = Boolean.valueOf(value.get("AUTO_INDEXED"));
+   		if (autoIndexed) {
+   			autoIndexedColumns.add((String) value.get("COLUMN_NAME"));
+   		}
+    }
+    
     if (useExistingConnection) {
     	String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
     	String dbconn = "dbService_" + connection;
@@ -31,8 +42,19 @@
     	%>
     	org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(<%=databasePath%>);
     	<%
-    }	    
-%>
+    }
+    if (autoIndexedColumns.size() > 0) {
+    	%>
+    	org.neo4j.graphdb.index.AutoIndexer<org.neo4j.graphdb.Node> autoIndexer = databaseService_<%=cid%>.index().getNodeAutoIndexer();
+    	autoIndexer.setEnabled(true);
+    	<%
+    }
+    for (String autoIndexedColumn : autoIndexedColumns) {
+		%>
+		autoIndexer.startAutoIndexingProperty("<%=autoIndexedColumn%>");
+		<%
+	}
+%>	
 org.neo4j.graphdb.Transaction tx = databaseService_<%=cid%>.beginTx();
 int nb_line_<%=cid %> = 0;
 long counter = 0;
