@@ -1,0 +1,136 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.IMetadataColumn 
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		org.talend.core.model.metadata.types.JavaTypesManager
+		org.talend.core.model.metadata.types.JavaType
+		java.util.List 
+    	java.util.Map		
+	" 
+%>
+<% 
+    CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+    INode node = (INode)codeGenArgument.getArgument();
+    String cid = node.getUniqueName();	
+    
+    List<IMetadataColumn> columnList = null;
+    List<IMetadataTable> metadatas = node.getMetadataList();
+    IMetadataTable metadata = null;
+    
+    if (metadatas != null && metadatas.size() > 0) {
+    	metadata = metadatas.get(0);
+    }	
+    
+    List<? extends IConnection> inputs = node.getIncomingConnections();
+    List<? extends IConnection> outputs = node.getOutgoingSortedConnections();
+    String incomingConnName = null;
+    String outgoingConnName = null;
+    
+    if (inputs.size() > 0) {
+    	IConnection in = inputs.get(0);
+    	incomingConnName = in.getName();
+    }
+    
+    if (outputs.size() > 0) {
+    	IConnection out = outputs.get(0);
+    	outgoingConnName = out.getName();
+    }
+    
+    String startIndexKey = ElementParameterParser.getValue(node, "__START_INDEX_KEY__");
+    String startIndexValueColumn = ElementParameterParser.getValue(node, "__START_INDEX_VALUE__");
+    
+    String endIndexKey = ElementParameterParser.getValue(node, "__END_INDEX_KEY__");
+    String endIndexValueColumn = ElementParameterParser.getValue(node, "__END_INDEX_VALUE__");
+    
+    String relationshipDirection = ElementParameterParser.getValue(node, "__RELATIONSHIP_DIRECTION__");
+    
+    List<Map<String, String>> mappingTable = (List<Map<String,String>>) ElementParameterParser.getObjectValue(node, "__MAPPING__");
+    
+    IMetadataColumn startColumn = metadata.getColumn(startIndexValueColumn);
+    IMetadataColumn endColumn = metadata.getColumn(endIndexValueColumn);
+    
+    if (startColumn != null && endColumn != null) {
+    	// Create dynamique condition according to start and end columns state
+    	if (startColumn.isNullable() && !endColumn.isNullable()) {
+    		%>
+    		if (<%=incomingConnName%>.<%=startColumn%> != null) {
+    		<%
+    	} else if (!startColumn.isNullable() && endColumn.isNullable()) {
+    		%>
+    		if (<%=incomingConnName%>.<%=endColumn%> != null) {
+    		<%
+    	} else if (startColumn.isNullable() && endColumn.isNullable()) {
+    		%>
+    		if (<%=incomingConnName%>.<%=startColumn%> != null && <%=incomingConnName%>.<%=endColumn%> != null) {
+    		<%
+    	} else {
+    		%>
+    		{
+    		<%
+    	}
+    	%>
+	    		org.neo4j.graphdb.Node startNode = startIndexNode_<%=cid%>.get("<%=startIndexKey%>", <%=incomingConnName%>.<%=startColumn%>).getSingle();
+				org.neo4j.graphdb.Node endNode = endIndexNode_<%=cid%>.get("<%=endIndexKey%>", <%=incomingConnName%>.<%=endColumn%>).getSingle();
+				
+				<%
+				if (relationshipDirection.equals("OUTGOING")) {
+					%>
+					org.neo4j.graphdb.Relationship relationship = startNode.createRelationshipTo(endNode, relationshipType_<%=cid%>);
+					<%
+				} else {
+					%>
+					org.neo4j.graphdb.Relationship relationship = endNode.createRelationshipTo(startNode, relationshipType_<%=cid%>);
+					<%
+				}
+				for (Map<String, String> row : mappingTable) {
+					String columnName = row.get("INPUT_COLUMN");
+					String propertyName = row.get("PROPERTY_NAME");
+					if (columnName != null && !columnName.isEmpty()) {
+						IMetadataColumn column = metadata.getColumn(columnName);
+						if (column.getTalendType().equals("id_Date")) {
+							%>
+							Object value_<%=column%> = null;
+							if (<%=incomingConnName%>.<%=column%> != null) {
+								java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
+								value_<%=column%> = date.getTime();
+							}
+							<%
+						} else {
+							%>
+							Object value_<%=column%> = <%=incomingConnName%>.<%=column%>;
+							<%
+						}
+						%>
+						if (value_<%=column%> != null) {
+							<%
+							if (propertyName != null && !propertyName.isEmpty()) {
+								%>
+								relationship.setProperty("<%=propertyName%>", value_<%=column%>); 
+								<%
+							} else {
+								%>
+								relationship.setProperty("<%=column%>", value_<%=column%>);
+								<%
+							}
+							%>
+						}
+						<%
+					}					
+				}
+			%>
+	    	}
+	    	<%
+    }
+    %>
+	if (counter % 30000 == 0) {
+		tx.success();
+		tx.finish();
+		tx = databaseService_<%=cid%>.beginTx();
+	}
+	counter++;
+	++nb_line_<%=cid %>;

@@ -1,0 +1,51 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.IMetadataColumn 
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		org.talend.core.model.metadata.types.JavaTypesManager
+		org.talend.core.model.metadata.types.JavaType
+		java.util.List 
+    	java.util.Map		
+	" 
+%>
+<% 
+    CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+    INode node = (INode)codeGenArgument.getArgument();
+    String cid = node.getUniqueName();	
+    
+    boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
+        
+    if (useExistingConnection) {
+    	String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
+    	String dbconn = "dbService_" + connection;
+    	%>
+    	org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
+    	<%
+    } else {
+    	String databasePath = ElementParameterParser.getValue(node, "__DATABASE_PATH__");
+    	%>
+    	org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(<%=databasePath%>);
+    	<%
+    }
+    String startIndexName = ElementParameterParser.getValue(node, "__START_INDEX_NAME__");
+    String endIndexName = ElementParameterParser.getValue(node, "__END_INDEX_NAME__");
+    
+    String relationshipType = ElementParameterParser.getValue(node, "__RELATIONSHIP_TYPE__");
+    %>
+    org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> startIndexNode_<%=cid%> = databaseService_<%=cid%>.index().forNodes("<%=startIndexName%>");
+    org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> endIndexNode_<%=cid%> = databaseService_<%=cid%>.index().forNodes("<%=endIndexName%>");
+	
+	org.neo4j.graphdb.RelationshipType relationshipType_<%=cid%> = new org.neo4j.graphdb.RelationshipType() {
+		public String name() {
+			return "<%=relationshipType%>";
+		}
+	};
+
+	org.neo4j.graphdb.Transaction tx = databaseService_<%=cid%>.beginTx();
+	int nb_line_<%=cid %> = 0;
+	long counter = 0;
