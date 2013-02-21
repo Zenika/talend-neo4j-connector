@@ -59,16 +59,25 @@
     	<%=outgoingConnName%>.<%=column%> = <%=incomingConnName%>.<%=column%>;
     	<%
     	}
-    	if (column.isNullable()) {
-    	%>
+    	if (column.getTalendType().equals("id_Date")) {
+    		%>
     		if (<%=incomingConnName%>.<%=column%> != null) {
-    			node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+    			java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
+    			node.setProperty("<%=column%>", date.getTime();
     		}
-    	<%
+    		<%
     	} else {
-    	%>
-    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
-    	<%
+	    	if (column.isNullable()) {
+	    	%>
+	    		if (<%=incomingConnName%>.<%=column%> != null) {
+	    			node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+	    		}
+	    	<%
+	    	} else {
+	    	%>
+	    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+	    	<%
+	    	}
     	}
     	if (column instanceof MetadataColumnExt) {
     		MetadataColumnExt columnExt = (MetadataColumnExt) column;

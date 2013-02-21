@@ -5,7 +5,7 @@
     <SIGNATURE/> 
   </HEADER>  
   <FAMILIES> 
-    <FAMILY>NoSQL/Neo4j</FAMILY> 
+    <FAMILY>Databases/Neo4j</FAMILY> 
   </FAMILIES>  
   <DOCUMENTATION> 
     <URL/> 
