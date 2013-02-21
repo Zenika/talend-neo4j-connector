@@ -40,11 +40,7 @@
     org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> startIndexNode_<%=cid%> = databaseService_<%=cid%>.index().forNodes("<%=startIndexName%>");
     org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> endIndexNode_<%=cid%> = databaseService_<%=cid%>.index().forNodes("<%=endIndexName%>");
 	
-	org.neo4j.graphdb.RelationshipType relationshipType_<%=cid%> = new org.neo4j.graphdb.RelationshipType() {
-		public String name() {
-			return "<%=relationshipType%>";
-		}
-	};
+	org.neo4j.graphdb.RelationshipType relationshipType_<%=cid%> = org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationshipType%>");
 
 	org.neo4j.graphdb.Transaction tx = databaseService_<%=cid%>.beginTx();
 	int nb_line_<%=cid %> = 0;
