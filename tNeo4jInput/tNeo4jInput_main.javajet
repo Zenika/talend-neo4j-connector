@@ -89,7 +89,7 @@
 							<%=outgoingConnName%>.<%=column%> = propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString();
 						}
 					<%
-					} else if (cType.equals("Id_Long")) {
+					} else if (cType.equals("id_Long")) {
 					%>
 						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Long || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
 							<%=outgoingConnName%>.<%=column%> = (Long) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");

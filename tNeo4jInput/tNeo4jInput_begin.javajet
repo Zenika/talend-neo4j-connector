@@ -28,10 +28,18 @@
 		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
 	<%
     } else {
-    	String databasePath = ElementParameterParser.getValue(node, "__DATABASE_PATH__");
-	%>
-		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(<%=databasePath%>);
-	<%    
+    	boolean remoteServer = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__REMOTE_SERVER__"));
+    	if (remoteServer) {
+    		String serverUrl = ElementParameterParser.getValue(node, "__SERVER_URL__");
+    		%>
+    		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.rest.graphdb.RestGraphDatabase(<%=serverUrl%>);
+    		<%
+    	} else {
+	    	String databasePath = ElementParameterParser.getValue(node, "__DATABASE_PATH__");
+			%>
+			org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(<%=databasePath%>);
+			<%
+		}
     }
 %>
 

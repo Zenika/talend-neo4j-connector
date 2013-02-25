@@ -27,8 +27,14 @@
 		<PARAMETER NAME="USE_EXISTING_CONNECTION" FIELD="CHECK" NUM_ROW="1">
 			<DEFAULT>false</DEFAULT>
 		</PARAMETER>
-		<PARAMETER NAME="DATABASE_PATH" FIELD="DIRECTORY" NUM_ROW="1" SHOW_IF="USE_EXISTING_CONNECTION == 'false'">
+		<PARAMETER NAME="REMOTE_SERVER" FIELD="CHECK" NUM_ROW="2">
+			<DEFAULT>false</DEFAULT>
+		</PARAMETER>
+		<PARAMETER NAME="DATABASE_PATH" FIELD="DIRECTORY" NUM_ROW="2" SHOW_IF="(USE_EXISTING_CONNECTION == 'false') AND (REMOTE_SERVER == 'false')">
 			<DEFAULT />
+		</PARAMETER>
+		<PARAMETER NAME="SERVER_URL" FIELD="TEXT" NUM_ROW="2" SHOW_IF="(USE_EXISTING_CONNECTION == 'false') AND (REMOTE_SERVER == 'true')">
+			<DEFAULT>http://localhost:7474/db/data</DEFAULT>
 		</PARAMETER>
 		<PARAMETER NAME="CONNECTION" FIELD="COMPONENT_LIST" FILTER="tNeo4jConnection" NUM_ROW="1" SHOW_IF="USE_EXISTING_CONNECTION == 'true'"/>
 		<PARAMETER NAME="SHUTDOWN_DB" FIELD="CHECK" NUM_ROW="1" SHOW_IF="USE_EXISTING_CONNECTION == 'true'">
@@ -71,6 +77,13 @@
 				REQUIRED="true" />
 			<IMPORT MODULE="concurrentlinkedhashmap-lru-1.3.1.jar" NAME="concurrentlinkedhashmap-lru-1.3.1"
 				REQUIRED="true" />
+			<IMPORT MODULE="neo4j-rest-graphdb-1.8.1.jar" NAME="neo4j-rest-graphdb-1.8.1" REQUIRED="true"/> 
+			<IMPORT MODULE="jsr311-api-1.1.2.r612.jar" NAME="jsr311-api-1.1.2.r612" REQUIRED="true"/>
+			<IMPORT MODULE="jersey-core-1.4.jar" NAME="jersey-core-1.4" REQUIRED="true"/>
+			<IMPORT MODULE="jersey-client-1.4.jar" NAME="jersey-client-1.4" REQUIRED="true"/>
+			<IMPORT MODULE="jackson-mapper-asl-1.9.7.jar" NAME="jackson-mapper-asl-1.9.7" REQUIRED="true"/>
+			<IMPORT MODULE="jackson-jaxrs-1.9.7.jar" NAME="jackson-jaxrs-1.9.7" REQUIRED="true"/>
+			<IMPORT MODULE="jackson-core-asl-1.9.7.jar" NAME="jackson-core-asl-1.9.7" REQUIRED="true"/>
 		</IMPORTS>
 	</CODEGENERATION>
 	<RETURNS>
