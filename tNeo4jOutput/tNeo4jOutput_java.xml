@@ -23,9 +23,15 @@
     <PARAMETER NAME="USE_EXISTING_CONNECTION" FIELD="CHECK" NUM_ROW="1">
     	<DEFAULT>false</DEFAULT>
     </PARAMETER>
-    <PARAMETER NAME="DATABASE_PATH" FIELD="DIRECTORY" NUM_ROW="1" SHOW_IF="USE_EXISTING_CONNECTION == 'false'">
-    	<DEFAULT />
-    </PARAMETER>
+    <PARAMETER NAME="REMOTE_SERVER" FIELD="CHECK" NUM_ROW="2">
+		<DEFAULT>false</DEFAULT>
+	</PARAMETER>
+	<PARAMETER NAME="DATABASE_PATH" FIELD="DIRECTORY" NUM_ROW="2" SHOW_IF="(USE_EXISTING_CONNECTION == 'false') AND (REMOTE_SERVER == 'false')">
+		<DEFAULT />
+	</PARAMETER>
+	<PARAMETER NAME="SERVER_URL" FIELD="TEXT" NUM_ROW="2" SHOW_IF="(USE_EXISTING_CONNECTION == 'false') AND (REMOTE_SERVER == 'true')">
+		<DEFAULT>"http://localhost:7474/db/data"</DEFAULT>
+	</PARAMETER>
     <PARAMETER NAME="CONNECTION" FIELD="COMPONENT_LIST" FILTER="tNeo4jConnection" NUM_ROW="2" SHOW_IF="USE_EXISTING_CONNECTION == 'true'"/>
     <PARAMETER NAME="SHUTDOWN_DB" FIELD="CHECK" NUM_ROW="1" SHOW_IF="USE_EXISTING_CONNECTION == 'true'">
     	<DEFAULT>false</DEFAULT>
@@ -45,6 +51,7 @@
     <PARAMETER NAME="VALUES" FIELD="TABLE" REQUIRED="true" NUM_ROW="3" NB_LINES="5" SHOW="false">
       <ITEMS BASED_ON_SCHEMA="true">
         <ITEM NAME="AUTO_INDEXED"/>
+        <ITEM NAME="INDEX_NAMES"/>
       </ITEMS>
     </PARAMETER>
     <PARAMETER NAME="MAP" FIELD="EXTERNAL" NUM_ROW="7">
@@ -66,7 +73,14 @@
       <IMPORT MODULE="neo4j-udc-1.9.M01.jar" NAME="neo4j-udc-1.9.M01" REQUIRED="true"/>  
       <IMPORT MODULE="org.apache.servicemix.bundles.jline-0.9.94_1.jar" NAME="org.apache.servicemix.bundles.jline-0.9.94_1" REQUIRED="true"/>  
       <IMPORT MODULE="scala-library-2.9.1-1.jar" NAME="scala-library-2.9.1-1" REQUIRED="true"/>  
-      <IMPORT MODULE="server-api-1.9.M01.jar" NAME="server-api-1.9.M01" REQUIRED="true"/> 
+      <IMPORT MODULE="server-api-1.9.M01.jar" NAME="server-api-1.9.M01" REQUIRED="true"/>
+      <IMPORT MODULE="neo4j-rest-graphdb-1.8.1.jar" NAME="neo4j-rest-graphdb-1.8.1.jar" REQUIRED="true"/>
+      <IMPORT MODULE="jsr311-api-1.1.2.r612.jar" NAME="jsr311-api-1.1.2.r612" REQUIRED="true"/>
+	  <IMPORT MODULE="jersey-core-1.4.jar" NAME="jersey-core-1.4" REQUIRED="true"/>
+      <IMPORT MODULE="jersey-client-1.4.jar" NAME="jersey-client-1.4" REQUIRED="true"/>
+	  <IMPORT MODULE="jackson-mapper-asl-1.9.7.jar" NAME="jackson-mapper-asl-1.9.7" REQUIRED="true"/>
+	  <IMPORT MODULE="jackson-jaxrs-1.9.7.jar" NAME="jackson-jaxrs-1.9.7" REQUIRED="true"/>
+	  <IMPORT MODULE="jackson-core-asl-1.9.7.jar" NAME="jackson-core-asl-1.9.7" REQUIRED="true"/>
     </IMPORTS> 
   </CODEGENERATION>  
   <RETURNS> 

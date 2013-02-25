@@ -16,7 +16,7 @@
 		java.util.List 
 		java.util.ArrayList 
 		java.util.HashMap 
-    	java.util.Map		
+    	java.util.Map
 	" 
 %>
 <% 
@@ -86,7 +86,6 @@
     		for (Index index : data.getIndexes()) {
     			%>
     			{
-	    			org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=index.getName()%> = databaseService_<%=cid%>.index().forNodes("<%=index.getName()%>");
 	    			<%
 	    			if (index.getValue() == null || index.getValue().isEmpty()) {
 					%>		    				
@@ -104,22 +103,21 @@
     		for (Relationship relationship : data.getRelationships()) {
     			%>
     			{
-    				org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode = databaseService_<%=cid%>.index().forNodes("<%=relationship.getIndexName()%>");
     				org.neo4j.graphdb.Node endNode = null;
     				<%
     				if (relationship.getValue() != null && !relationship.getValue().isEmpty()) {
     				%>
-    					endNode = indexNode.get("<%=relationship.getKey()%>", "<%=relationship.getValue()%>").getSingle();
+    					endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", "<%=relationship.getValue()%>").getSingle();
     				<%
     				} else if (column.isNullable()) {
     				%>
     					if (<%=incomingConnName%>.<%=column%> != null) {
-    						endNode = indexNode.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+    						endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
     					}
     				<%
     				} else {
     				%>
-    					endNode = indexNode.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+    					endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
     				<%
     				}
     				%>
