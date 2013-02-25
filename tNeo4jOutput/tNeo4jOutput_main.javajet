@@ -128,12 +128,12 @@
     					switch (relationship.getDirection()) {    					
     						case OUTGOING :
 	    						%>		 	
-			    				node.createRelationshipTo(endNode, org.neo4j.graphdb.DynamicRelationshipType().withName("<%=relationship.getType()%>"));
+			    				node.createRelationshipTo(endNode, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
 								<%
 								break;
 							case INCOMMING :
 								%>
-								endNode.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType().withName("<%=relationship.getType()%>"));
+								endNode.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
 								<%
 								break;
 						}

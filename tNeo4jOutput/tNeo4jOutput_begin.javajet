@@ -27,7 +27,7 @@
     for (Map<String, String> value : values) {
     	boolean autoIndexed = Boolean.valueOf(value.get("AUTO_INDEXED"));
    		if (autoIndexed) {
-   			autoIndexedColumns.add((String) value.get("COLUMN_NAME"));
+   			autoIndexedColumns.add(value.get("SCHEMA_COLUMN"));
    		}
     }
     
