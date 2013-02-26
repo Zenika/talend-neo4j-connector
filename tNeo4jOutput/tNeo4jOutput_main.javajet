@@ -87,14 +87,23 @@
     			%>
     			{
 	    			<%
-	    			if (index.getValue() == null || index.getValue().isEmpty()) {
-					%>		    				
+	    			boolean fromValueColumn = index.getValue() == null || index.getValue().isEmpty();
+	    			if (fromValueColumn) {
+						%>		    				
 						indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);		    			
-					<%
+						<%
+	    			} else if (fromValueColumn && index.isUnique()){
+	    				%>
+	    				indexNode_<%=index.getName()%>.putIfAbsent(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);
+	    				<%
+	    			} else if (index.isUnique()) {
+	    				%>
+	    				indexNode_<%=index.getName()%>.putIfAbsent(node, "<%=index.getKey()%>", "<%=index.getValue()%>");
+	    				<%
 	    			} else {
-					%>
+						%>
 						indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", "<%=index.getValue()%>");				
-					<%
+						<%
 	    			}
 	    			%>
     			}
@@ -116,9 +125,9 @@
     					}
     				<%
     				} else {
-    				%>
+    					%>
     					endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
-    				<%
+    					<%
     				}
     				%>
     				if (endNode != null) {
