@@ -16,13 +16,13 @@
 		java.util.List 
 		java.util.ArrayList 
 		java.util.HashMap 
-    	java.util.Map
+    	java.util.Map 
 	" 
-%>
+%>	
 <% 
     CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
-    INode node = (INode)codeGenArgument.getArgument();
-    String cid = node.getUniqueName();
+    final INode node = (INode)codeGenArgument.getArgument();
+    final String cid = node.getUniqueName();
     String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
     
     List<IMetadataColumn> columnList = null;
@@ -49,108 +49,151 @@
     	IConnection out = outputs.get(0);
     	outgoingConnName = out.getName();
     }
-    
-    %>    
-    org.neo4j.graphdb.Node node = databaseService_<%=cid%>.createNode();
-    <%
-    
     for (IMetadataColumn column : columnList) {
-    	if (outgoingConnName != null) {
-    	%>
-    	<%=outgoingConnName%>.<%=column%> = <%=incomingConnName%>.<%=column%>;
-    	<%
-    	}
-    	if (column.getTalendType().equals("id_Date")) {
-    		%>
-    		if (<%=incomingConnName%>.<%=column%> != null) {
-    			java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
-    			node.setProperty("<%=column%>", date.getTime();
-    		}
-    		<%
-    	} else {
-	    	if (column.isNullable()) {
+	    if (outgoingConnName != null) {
 	    	%>
-	    		if (<%=incomingConnName%>.<%=column%> != null) {
-	    			node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
-	    		}
+	    	<%=outgoingConnName%>.<%=column%> = <%=incomingConnName%>.<%=column%>;
 	    	<%
-	    	} else {
-	    	%>
-	    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
-	    	<%
-	    	}
-    	}
-    	if (column instanceof MetadataColumnExt) {
-    		MetadataColumnExt columnExt = (MetadataColumnExt) column;
-    		Neo4jData data = columnExt.getData();
-    		for (Index index : data.getIndexes()) {
-    			%>
-    			{
-	    			<%
-	    			boolean fromValueColumn = index.getValue() == null || index.getValue().isEmpty();
-	    			if (fromValueColumn) {
-						%>		    				
-						indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);		    			
-						<%
-	    			} else if (fromValueColumn && index.isUnique()){
-	    				%>
-	    				indexNode_<%=index.getName()%>.putIfAbsent(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);
-	    				<%
-	    			} else if (index.isUnique()) {
-	    				%>
-	    				indexNode_<%=index.getName()%>.putIfAbsent(node, "<%=index.getKey()%>", "<%=index.getValue()%>");
-	    				<%
-	    			} else {
-						%>
-						indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", "<%=index.getValue()%>");				
-						<%
-	    			}
-	    			%>
-    			}
-    			<%
-    		}
-    		for (Relationship relationship : data.getRelationships()) {
-    			%>
-    			{
-    				org.neo4j.graphdb.Node endNode = null;
-    				<%
-    				if (relationship.getValue() != null && !relationship.getValue().isEmpty()) {
-    				%>
-    					endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", "<%=relationship.getValue()%>").getSingle();
-    				<%
-    				} else if (column.isNullable()) {
-    				%>
-    					if (<%=incomingConnName%>.<%=column%> != null) {
-    						endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
-    					}
-    				<%
-    				} else {
-    					%>
-    					endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
-    					<%
-    				}
-    				%>
-    				if (endNode != null) {
-    					<%
-    					switch (relationship.getDirection()) {    					
-    						case OUTGOING :
-	    						%>		 	
-			    				node.createRelationshipTo(endNode, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
-								<%
-								break;
-							case INCOMMING :
-								%>
-								endNode.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
-								<%
-								break;
-						}
-						%>			
-					}
-    			}
-    			<%
-    		}
-    	}
+		}
     }
+    
+    class Neo4jUtils {
+		
+		private List<IMetadataColumn> columnList;
+		private String incomingConnName;
+		
+		public Neo4jUtils(String incomingConnName, List<IMetadataColumn> columnList) {
+			this.incomingConnName = incomingConnName;
+			this.columnList = columnList;
+		}
+		
+		public void generateNodeInsert() {
+			%>
+			org.neo4j.graphdb.Node node = databaseService_<%=cid%>.createNode();
+			<%
+			generateNode();
+		}
+		
+		public void generateNodeInsertOrUpdate() {
+			String indexName = ElementParameterParser.getValue(node, "__INDEX_NAME__");
+			String indexKey = ElementParameterParser.getValue(node, "__INDEX_KEY__");
+			String indexColumnValue = ElementParameterParser.getValue(node, "__INDEX_VALUE__");
+			%>
+			org.neo4j.graphdb.Node node = indexNode_<%=indexName%>.get("<%=indexKey%>", <%=incomingConnName%>.<%=indexColumnValue%>).getSingle();
+			if (node == null) {
+				node = databaseService_<%=cid%>.createNode();
+			}
+			<%
+			generateNode();
+		}
+
+		private void generateNode() {
+			for (IMetadataColumn column : columnList) {
+		    	generateNodePropertyInsert(column);
+		    	if (column instanceof MetadataColumnExt) {
+		    		MetadataColumnExt columnExt = (MetadataColumnExt) column;
+		    		Neo4jData data = columnExt.getData();
+		    		for (Index index : data.getIndexes()) {
+		    			generateIndexCreation(index, column);
+		    		}
+		    		for (Relationship relationship : data.getRelationships()) {
+		    			generateRelationshipCreation(relationship, column);
+		    		}
+		    	}
+		    }
+		}
+
+		private void generateNodePropertyInsert(IMetadataColumn column) {
+			if (column.getTalendType().equals("id_Date")) {
+	    		%>
+	    		if (<%=incomingConnName%>.<%=column%> != null) {
+	    			java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
+	    			node.setProperty("<%=column%>", date.getTime();
+	    		}
+	    		<%
+    		} else {
+		    	if (column.isNullable()) {
+			    	%>
+		    		if (<%=incomingConnName%>.<%=column%> != null) {
+		    			node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    		}
+			    	<%
+		    	} else {
+			    	%>
+			    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+			    	<%
+		    	}
+		    }
+		}
+
+
+		private void generateIndexCreation(Index index, IMetadataColumn column) {
+			boolean fromValueColumn = index.getValue() == null || index.getValue().isEmpty();
+			if (fromValueColumn) {
+				%>		    				
+				indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);		    			
+				<%
+			} else if (fromValueColumn && index.isUnique()){
+				%>
+				indexNode_<%=index.getName()%>.putIfAbsent(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);
+				<%
+			} else if (index.isUnique()) {
+				%>
+				indexNode_<%=index.getName()%>.putIfAbsent(node, "<%=index.getKey()%>", "<%=index.getValue()%>");
+				<%
+			} else {
+				%>
+				indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", "<%=index.getValue()%>");				
+				<%
+			}
+		}
+		
+		private void generateRelationshipCreation(Relationship relationship, IMetadataColumn column) {
+			%>
+			org.neo4j.graphdb.Node endNode = null;
+			<%
+			if (relationship.getValue() != null && !relationship.getValue().isEmpty()) {
+			%>
+				endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", "<%=relationship.getValue()%>").getSingle();
+			<%
+			} else if (column.isNullable()) {
+			%>
+				if (<%=incomingConnName%>.<%=column%> != null) {
+					endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+				}
+			<%
+			} else {
+				%>
+				endNode = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+				<%
+			}
+			%>
+			if (endNode != null) {
+				<%
+				switch (relationship.getDirection()) {
+					case OUTGOING :
+						%>		 	
+	    				node.createRelationshipTo(endNode, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
+						<%
+						break;
+					case INCOMMING :
+						%>
+						endNode.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
+						<%
+						break;
+				}
+				%>			
+			}
+			<%
+		}
+	}
+    
+    Neo4jUtils neo4jUtils = new Neo4jUtils(incomingConnName, columnList);
+    if (dataAction.equals("INSERT")) {
+	    neo4jUtils.generateNodeInsert();
+	} else if (dataAction.equals("INSERT_OR_UPDATE")) {
+		neo4jUtils.generateNodeInsertOrUpdate();
+	}
 %>
 if (counter % 30000 == 0) {
 	tx.success();

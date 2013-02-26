@@ -40,6 +40,11 @@
    			indexNames.addAll(Arrays.asList(strIndexNames.split(",")));
    		}
     }
+    // Add update/delete index
+    String action = (String) ElementParameterParser.getObjectValue(node, "__DATA_ACTION__");
+    if (!action.equals("INSERT")) {
+    	indexNames.add((String) ElementParameterParser.getObjectValue(node, "__INDEX_NAME__"));
+    }
     
     if (useExistingConnection) {
     	String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
