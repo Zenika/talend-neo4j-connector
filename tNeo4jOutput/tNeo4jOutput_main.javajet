@@ -86,6 +86,19 @@
 			<%
 			generateNode();
 		}
+		
+		public void generateNodeUpdate() {
+			String indexName = ElementParameterParser.getValue(node, "__INDEX_NAME__");
+			String indexKey = ElementParameterParser.getValue(node, "__INDEX_KEY__");
+			String indexColumnValue = ElementParameterParser.getValue(node, "__INDEX_VALUE__");
+			%>
+			org.neo4j.graphdb.Node node = indexNode_<%=indexName%>.get("<%=indexKey%>", <%=incomingConnName%>.<%=indexColumnValue%>).getSingle();
+			if (node == null) {
+				throw new RuntimeException("Node not found");
+			}
+			<%
+			generateNode();
+		}
 
 		private void generateNode() {
 			for (IMetadataColumn column : columnList) {
@@ -193,6 +206,8 @@
 	    neo4jUtils.generateNodeInsert();
 	} else if (dataAction.equals("INSERT_OR_UPDATE")) {
 		neo4jUtils.generateNodeInsertOrUpdate();
+	} else if (dataAction.equals("UPDATE")) {
+		neo4jUtils.generateNodeUpdate();
 	}
 %>
 if (counter % 30000 == 0) {
