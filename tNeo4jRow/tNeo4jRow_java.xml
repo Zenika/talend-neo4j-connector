@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<COMPONENT> 
+  <HEADER AUTHOR="Talend" COMPATIBILITY="ALL" DATA_AUTO_PROPAGATE="false" PLATEFORM="ALL" RELEASE_DATE="20080229A" SERIAL="" STARTABLE="false" STATUS="ALPHA" VERSION="0.102"> 
+    <SIGNATURE/> 
+  </HEADER>  
+  <FAMILIES> 
+    <FAMILY>Database/Neo4j</FAMILY> 
+  </FAMILIES>  
+  <DOCUMENTATION> 
+    <URL/> 
+  </DOCUMENTATION>
+  <CONNECTORS> 
+    <CONNECTOR CTYPE="FLOW" MAX_INPUT="1"/> <CONNECTOR CTYPE="ITERATE" MAX_OUTPUT="1" MAX_INPUT="1"/>
+    <CONNECTOR CTYPE="SUBJOB_OK" MAX_INPUT="1"/>
+    <CONNECTOR CTYPE="SUBJOB_ERROR" MAX_INPUT="1"/>
+  	<CONNECTOR CTYPE="COMPONENT_OK" MAX_INPUT="0" MAX_OUTPUT="1" MIN_INPUT="0" MIN_OUTPUT="0"/>
+  	<CONNECTOR CTYPE="COMPONENT_ERROR" MAX_INPUT="0" MAX_OUTPUT="1" MIN_INPUT="0" MIN_OUTPUT="0"/>  
+    <CONNECTOR CTYPE="RUN_IF"/> 
+  </CONNECTORS> 
+  <CODEGENERATION>
+  <PARAMETER NAME="USE_EXISTING_CONNECTION" FIELD="CHECK" NUM_ROW="1">
+    	<DEFAULT>false</DEFAULT>
+    </PARAMETER>
+    <PARAMETER NAME="REMOTE_SERVER" FIELD="CHECK" NUM_ROW="2" SHOW_IF="USE_EXISTING_CONNECTION == 'false'">
+		<DEFAULT>false</DEFAULT>
+	</PARAMETER>
+	<PARAMETER NAME="DATABASE_PATH" FIELD="DIRECTORY" NUM_ROW="2" SHOW_IF="(USE_EXISTING_CONNECTION == 'false') AND (REMOTE_SERVER == 'false')">
+		<DEFAULT />
+	</PARAMETER>
+	<PARAMETER NAME="SERVER_URL" FIELD="TEXT" NUM_ROW="2" SHOW_IF="(USE_EXISTING_CONNECTION == 'false') AND (REMOTE_SERVER == 'true')">
+		<DEFAULT>"http://localhost:7474/db/data"</DEFAULT>
+	</PARAMETER>
+    <PARAMETER NAME="CONNECTION" FIELD="COMPONENT_LIST" FILTER="tNeo4jConnection" NUM_ROW="2" SHOW_IF="USE_EXISTING_CONNECTION == 'true'"/>
+    <PARAMETER NAME="SHUTDOWN_DB" FIELD="CHECK" NUM_ROW="1" SHOW_IF="USE_EXISTING_CONNECTION == 'true'">
+    	<DEFAULT>false</DEFAULT>
+    </PARAMETER>
+    <PARAMETER NAME="SCHEMA" FIELD="SCHEMA_TYPE" NUM_ROW="4">
+    	<DEFAULT>""</DEFAULT>
+    </PARAMETER>
+    <PARAMETER NAME="QUERY" FIELD="MEMO" REQUIRED="true" NUM_ROW="5">
+    	<DEFAULT>""</DEFAULT>
+    </PARAMETER>
+    <PARAMETER NAME="PARAMETERS" FIELD="TABLE" REQUIRED="false" NUM_ROW="7" NB_LINES="5">
+    	<ITEMS>
+    		<ITEM NAME="PARAMETER_NAME"/>
+    		<ITEM NAME="PARAMETER_VALUE" FIELD="PREV_COLUMN_LIST"/>
+    	</ITEMS>
+    </PARAMETER>
+    <PARAMETER NAME="USE_NB_LINE" FIELD="CLOSED_LIST" NUM_ROW="56">
+		<ITEMS DEFAULT="NONE">
+			<ITEM NAME="NONE" VALUE="NONE" />
+	        <ITEM NAME="NB_NODE_INSERTED" VALUE="NB_PROPERTY_INSERTED" />
+	        <ITEM NAME="NB_RELATIONSHIP_INSERTED" VALUE="NB_RELATIONSHIP_INSERTED"/>
+	        <ITEM NAME="NB_PROPERTY_UPDATED" VALUE="NB_PROPERTY_UPDATED"/>
+	        <ITEM NAME="NB_NODE_DELETED" VALUE="NB_NODE_DELETED"/>
+	        <ITEM NAME="NB_RELATIONSHIP_DELETED" VALUE="NB_RELATIONSHIP_DELETED"/>
+		</ITEMS>
+    </PARAMETER>
+	<PARAMETER NAME="USE_NB_LINE_NOTE" FIELD="LABEL" NUM_ROW="56">
+		<DEFAULT>* Just the Query is Insert/Update/Delete Cypher request.</DEFAULT>
+	</PARAMETER>
+    <IMPORTS> 
+      <IMPORT MODULE="concurrentlinkedhashmap-lru-1.3.1.jar" NAME="concurrentlinkedhashmap-lru-1.3.1" REQUIRED="true"/>  
+      <IMPORT MODULE="geronimo-jta_1.1_spec-1.1.1.jar" NAME="geronimo-jta_1.1_spec-1.1.1" REQUIRED="true"/>  
+      <IMPORT MODULE="jackson-core-asl-1.9.7.jar" NAME="jackson-core-asl-1.9.7" REQUIRED="true"/>  
+      <IMPORT MODULE="jackson-jaxrs-1.9.7.jar" NAME="jackson-jaxrs-1.9.7" REQUIRED="true"/>  
+      <IMPORT MODULE="jackson-mapper-asl-1.9.7.jar" NAME="jackson-mapper-asl-1.9.7" REQUIRED="true"/>  
+      <IMPORT MODULE="jersey-client-1.4.jar" NAME="jersey-client-1.4" REQUIRED="true"/>  
+      <IMPORT MODULE="jersey-core-1.4.jar" NAME="jersey-core-1.4" REQUIRED="true"/>  
+      <IMPORT MODULE="jsr311-api-1.1.2.r612.jar" NAME="jsr311-api-1.1.2.r612" REQUIRED="true"/>  
+      <IMPORT MODULE="lucene-core-3.5.0.jar" NAME="lucene-core-3.5.0" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-cypher-1.9.M01.jar" NAME="neo4j-cypher-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-graph-algo-1.9.M01.jar" NAME="neo4j-graph-algo-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-graph-matching-1.9.M01.jar" NAME="neo4j-graph-matching-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-jmx-1.9.M01.jar" NAME="neo4j-jmx-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-kernel-1.9.M01.jar" NAME="neo4j-kernel-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-lucene-index-1.9.M01.jar" NAME="neo4j-lucene-index-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-rest-graphdb-1.8.1.jar" NAME="neo4j-rest-graphdb-1.8.1" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-shell-1.9.M01.jar" NAME="neo4j-shell-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="neo4j-udc-1.9.M01.jar" NAME="neo4j-udc-1.9.M01" REQUIRED="true"/>  
+      <IMPORT MODULE="org.apache.servicemix.bundles.jline-0.9.94_1.jar" NAME="org.apache.servicemix.bundles.jline-0.9.94_1" REQUIRED="true"/>  
+      <IMPORT MODULE="scala-library-2.9.1-1.jar" NAME="scala-library-2.9.1-1" REQUIRED="true"/>  
+      <IMPORT MODULE="server-api-1.9.M01.jar" NAME="server-api-1.9.M01" REQUIRED="true"/> 
+    </IMPORTS> 
+  </CODEGENERATION>  
+  <RETURNS> 
+    <RETURN AVAILABILITY="AFTER" NAME="NB_LINE" TYPE="id_Integer"/> 
+  </RETURNS> 
+</COMPONENT>

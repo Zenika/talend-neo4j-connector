@@ -1,0 +1,44 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.IMetadataColumn 
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		org.talend.core.model.metadata.types.JavaTypesManager
+		org.talend.core.model.metadata.types.JavaType
+		java.util.List 
+    	java.util.Map		
+	" 
+%>
+<% 
+    CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+    INode node = (INode)codeGenArgument.getArgument();
+    String cid = node.getUniqueName();	
+    
+    String useNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
+    
+    if (useNbLine.equals("NB_NODE_INSERTED")) {
+		%>
+		globalMap.put("<%=cid %>_NB_NODE_INSERTED", nbNodeInserted_<%=cid%>);
+		<%
+	} else if (useNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
+		%>
+		globalMap.put("<%=cid %>_NB_RELATIONSHIP_INSERTED", nbRelationshipInserted_<%=cid%>);
+		<%
+	} else if (userNbLine.equals("NB_PROPERTY_UPDATED")) {
+		%>
+		globalMap.put("<%=cid %>_NB_PROPERTY_UPDATED", nbPropertiesUpdated_<%=cid%>);
+		<%
+	} else if (userNbLine.equals("NB_NODE_DELETED")) {
+		%>
+		globalMap.put("<%=cid %>_NB_NODE_DELETED", nbNodeDeleted_<%=cid%>);
+		<%
+	} else if (userNbLine.equals("NB_RELATIONSHIP_DELETED")) {
+		%>
+		globalMap.put("<%=cid %>_NB_RELATIONSHIP_DELETED", nbRelationshipDeleted_<%=cid%>);
+		<%
+	}
+%>
