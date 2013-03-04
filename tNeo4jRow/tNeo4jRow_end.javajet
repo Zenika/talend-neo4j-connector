@@ -18,13 +18,13 @@
     INode node = (INode)codeGenArgument.getArgument();
     String cid = node.getUniqueName();	
     
-    String useNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
+    String userNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
     
-    if (useNbLine.equals("NB_NODE_INSERTED")) {
+    if (userNbLine.equals("NB_NODE_INSERTED")) {
 		%>
 		globalMap.put("<%=cid %>_NB_NODE_INSERTED", nbNodeInserted_<%=cid%>);
 		<%
-	} else if (useNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
+	} else if (userNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
 		%>
 		globalMap.put("<%=cid %>_NB_RELATIONSHIP_INSERTED", nbRelationshipInserted_<%=cid%>);
 		<%

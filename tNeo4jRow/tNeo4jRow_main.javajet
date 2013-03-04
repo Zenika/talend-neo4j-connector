@@ -11,7 +11,9 @@
 		org.talend.core.model.metadata.types.JavaType
 		java.util.List 
     	java.util.Map 
-    	java.util.HashMap
+    	java.util.HashMap 
+    	java.util.HashSet 
+    	java.util.Set 
 	" 
 %>
 <% 
@@ -21,26 +23,114 @@
     
     String query = ElementParameterParser.getValue(node, "__QUERY__");
     List<Map<String, String>> listParameters = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__PARAMETERS__");
+    boolean dieOnError = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__DIE_ON_ERROR__"));    
+    String userNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
     
-    String useNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
+    List<IMetadataColumn> columnList = null;
+    List<IMetadataTable> metadatas = node.getMetadataList();
     
+    if (metadatas != null && metadatas.size() > 0) {
+    	IMetadataTable metadata = metadatas.get(0);
+    	if (metadata != null) {
+    		columnList = metadata.getListColumns();
+    	}
+    }	
+    
+    List<? extends IConnection> inputs = node.getIncomingConnections();
+    List<? extends IConnection> outputs = node.getOutgoingSortedConnections();
+    String incomingConnName = null;
+    String outgoingConnName = null;
+    
+    if (inputs.size() > 0) {
+    	IConnection in = inputs.get(0);
+    	incomingConnName = in.getName();
+    }
+    
+    if (outputs.size() > 0) {
+    	IConnection out = outputs.get(0);
+    	outgoingConnName = out.getName();
+    }
+    
+    String rejectConnName = null;
+    List<? extends IConnection> rejectConns = node.getOutgoingConnections("REJECT");
+    if (rejectConns != null && rejectConns.size() > 0) {
+    	IConnection rejectConn = rejectConns.get(0);
+    	rejectConnName = rejectConn.getName();
+    }
+    
+    List<IMetadataColumn> rejectColumnList = null;
+    IMetadataTable metadataTable = node.getMetadataFromConnector("REJECT");
+    if (metadataTable != null) {
+    	rejectColumnList = metadataTable.getListColumns();
+    }
+    
+    Set<String> inputCols = new HashSet();
+	if ((metadatas!=null)&&(metadatas.size()>0)) {
+		IMetadataTable metadata = metadatas.get(0);
+		if (metadata!=null) {
+			List< ? extends IConnection> conns = node.getIncomingConnections();
+			columnList = metadata.getListColumns();
+			if(conns != null && conns.size()>0){
+				IConnection conn = conns.get(0);
+				if (conn.getLineStyle().hasConnectionCategory(IConnectionCategory.DATA)) {
+					incomingConnName = conn.getName();
+					IMetadataTable inputMetadataTable = conn.getMetadataTable();
+					for (IMetadataColumn inputCol : inputMetadataTable.getListColumns()) {
+						inputCols.add(inputCol.getLabel());
+					}
+				}
+			}
+		}
+	}
     %>
-    java.util.Map<String, String> parameters = new java.utilsHashMap<String, String>();
+    java.util.Map<String, Object> parameters = new java.util.HashMap<String, Object>();
     <%
     for (Map<String, String> parameter : listParameters) {
     	%>
-    	parameters.put(parameter.get("PARAMETER_NAME"), parameter.get("PARAMETER_VALUE"));
+    	parameters.put(<%=parameter.get("PARAMETER_NAME")%>, <%=incomingConnName%>.<%=parameter.get("PARAMETER_VALUE")%>);
     	<%
     }
     %>
-    org.neo4j.cypher.ExecutionResult result = engine.execute(<%=query%>, parameters);
+    try {
+    	org.neo4j.cypher.ExecutionResult result = engine.execute(<%=query%>, parameters);
+    } catch (Exception e) {
+    	<%
+    	if (dieOnError) {
+    		%>
+    		throw(e);
+    		<%
+    	} else {
+    		if (rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
+    			%>
+    			<%=rejectConnName%> = new <%=rejectConnName%>Struct();
+    			<%
+    			if (incomingConnName != null) {
+    				for (IMetadataColumn column : columnList) {
+    					if (inputCols.contains(column.getLabel())) {
+    					%>
+    					<%=rejectConnName%>.<%=column.getLabel()%> = <%=incomingConnName%>.<%=column.getLabel()%>;
+    					<%
+    					}
+    				}
+    			}
+    			%>
+    			<%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName()%>
+    			<%
+    		} else {
+    			%>
+    			System.err.print(e.getMessage());
+    			<%
+    		}
+    	}
+    	%>
+    }
     <%
     
-    if (useNbLine.equals("NB_NODE_INSERTED")) {
+    if (userNbLine.equals("NB_NODE_INSERTED")) {
 		%>
 		nbNodeInserted_<%=cid%> += result.nodesCreated();
 		<%
-	} else if (useNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
+	} else if (userNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
 		%>
 		nbRelationshipInserted_<%=cid%> += result.relationshipsCreated();
 		<%

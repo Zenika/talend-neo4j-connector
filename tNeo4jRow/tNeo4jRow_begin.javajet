@@ -40,18 +40,18 @@
 		}
     }
     
-    String useNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
+    String userNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
 %>   
 org.neo4j.cypher.ExecutionEngine engine = new org.neo4j.cypher.ExecutionEngine(databaseService_<%=cid%>);
 org.neo4j.graphdb.Transaction tx = databaseService_<%=cid%>.beginTx();
 
 long counter = 0;
 <%
-if (useNbLine.equals("NB_NODE_INSERTED")) {
+if (userNbLine.equals("NB_NODE_INSERTED")) {
 	%>
 	long nbNodeInserted_<%=cid%> = 0;
 	<%
-} else if (useNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
+} else if (userNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
 	%>
 	long nbRelationshipInserted_<%=cid%> = 0;
 	<%
