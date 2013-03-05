@@ -24,6 +24,7 @@
     final INode node = (INode)codeGenArgument.getArgument();
     final String cid = node.getUniqueName();
     String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
+    String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
     
     List<IMetadataColumn> columnList = null;
     List<IMetadataTable> metadatas = node.getMetadataList();
@@ -232,7 +233,7 @@
 		neo4jUtils.generateNodeDelete();
 	}
 %>
-if (counter % 30000 == 0) {
+if (counter % Long.parseLong(<%=commitEvery%>) == 0) {
 	tx.success();
 	tx.finish();
 	tx = databaseService_<%=cid%>.beginTx();

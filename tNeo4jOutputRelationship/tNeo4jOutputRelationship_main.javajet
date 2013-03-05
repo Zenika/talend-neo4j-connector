@@ -41,6 +41,8 @@
     	outgoingConnName = out.getName();
     }
     
+    String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
+    
     String startIndexKey = ElementParameterParser.getValue(node, "__START_INDEX_KEY__");
     String startIndexValueColumn = ElementParameterParser.getValue(node, "__START_INDEX_VALUE__");
     
@@ -127,7 +129,7 @@
 	    	<%
     }
     %>
-	if (counter % 30000 == 0) {
+	if (counter % Long.parseLong(<%=commitEvery%>) == 0) {
 		tx.success();
 		tx.finish();
 		tx = databaseService_<%=cid%>.beginTx();
