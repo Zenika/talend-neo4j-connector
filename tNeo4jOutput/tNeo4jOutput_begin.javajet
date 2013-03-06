@@ -24,6 +24,7 @@
     String cid = node.getUniqueName();
     
     boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
+    boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
     List<Map<String, String>> values = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__VALUES__");
     
     List<String> autoIndexedColumns = new ArrayList<String>();
@@ -40,6 +41,21 @@
    			indexNames.addAll(Arrays.asList(strIndexNames.split(",")));
    		}
     }
+    
+    %>
+    java.util.Map<String, org.neo4j.graphdb.Node> cachedNodes = null;
+    <%
+    
+    for (Map<String, String> value : values) {
+    	boolean cacheNode = Boolean.valueOf(value.get("CACHE_NODE"));
+    	if (cacheNode) {
+    		%>
+    		cachedNodes = new java.util.HashMap<String, org.neo4j.graphdb.Node>();
+    		<%
+    		break;
+    	}
+    }
+    
     // Add update/delete index
     String action = (String) ElementParameterParser.getObjectValue(node, "__DATA_ACTION__");
     if (!action.equals("INSERT")) {
@@ -49,8 +65,33 @@
     if (useExistingConnection) {
     	String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
     	String dbconn = "dbService_" + connection;
+    	if (batchImport) {
+    		%>
+    		//org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
+    		//String storeDir = "";
+    		//if (databaseService_<%=cid%> instanceof org.neo4j.kernel.EmbeddedGraphDatabase) {
+    			//org.neo4j.kernel.EmbeddedGraphDatabase db = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
+    			//storeDir = db.getStoreDir();
+    			//db.shutdown();
+    			//databaseService_<%=cid%> = org.neo4j.unsafe.batchinsert.BatchInserters.batchDatabase(db.getStoreDir());
+    		//} else {
+    			//throw new UnsupportedOperationException("Not supported yet");
+    		//}
+    		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
+    		<%
+    		boolean useCachedNodeSource = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_CACHED_NODE__"));
+    		if (useCachedNodeSource) {
+	    		String cachedNodeSource = ElementParameterParser.getValue(node, "__CACHED_NODE_SOURCE__");
+	    		%>
+	    		java.util.Map<String, org.neo4j.graphdb.Node> cachedNodes_<%=cid%> = (java.util.Map<String, org.neo4j.graphdb.Node>) globalMap.get("<%=cachedNodeSource%>_CACHED_NODE"); 
+	    		<%
+    		}
+    	} else {
+    		%>
+			org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
+			<%
+    	}
 		%>
-		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
 	<%
     } else {
     	boolean remoteServer = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__REMOTE_SERVER__"));

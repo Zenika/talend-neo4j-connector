@@ -25,6 +25,7 @@
     final String cid = node.getUniqueName();
     String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
     String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
+    boolean batchMode = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
     
     List<IMetadataColumn> columnList = null;
     List<IMetadataTable> metadatas = node.getMetadataList();
@@ -122,27 +123,38 @@
 		}
 
 		private void generateNode() {
-			for (IMetadataColumn column : columnList) {
-		    	generateNodePropertyInsert(column);
-		    	if (column instanceof MetadataColumnExt) {
-		    		MetadataColumnExt columnExt = (MetadataColumnExt) column;
+			for (IMetadataColumn column : columnList) {		    	
+		    	if (column instanceof MetadataColumnExt) {		    		
+		    		MetadataColumnExt columnExt = (MetadataColumnExt) column;		    		
 		    		Neo4jData data = columnExt.getData();
+		    		generateNodePropertyInsert(column, data.isCacheNode());
 		    		for (Index index : data.getIndexes()) {
 		    			generateIndexCreation(index, column);
 		    		}
-		    		for (Relationship relationship : data.getRelationships()) {
-		    			generateRelationshipCreation(relationship, column);
+		    		if (data.getRelationships().isFromCache()) {
+		    			generateRelationshipFromCache(data.getRelationships().getRelationship(), column);
+		    		} else {
+			    		for (Relationship relationship : data.getRelationships()) {
+			    			generateRelationshipCreation(relationship, column);
+			    		}
 		    		}
 		    	}
 		    }
 		}
 	
-		private void generateNodePropertyInsert(IMetadataColumn column) {
+		private void generateNodePropertyInsert(IMetadataColumn column, boolean cacheNode) {
 			if (column.getTalendType().equals("id_Date")) {
 	    		%>
 	    		if (<%=incomingConnName%>.<%=column%> != null) {
 	    			java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
 	    			node.setProperty("<%=column%>", date.getTime());
+	    			<%
+	    			if (cacheNode) {
+	    				%>
+	    				cachedNodes.put("<%=column%>", node);
+	    				<%
+	    			}
+	    			%>
 	    		}
 	    		<%
     		} else {
@@ -150,12 +162,24 @@
 			    	%>
 		    		if (<%=incomingConnName%>.<%=column%> != null) {
 		    			node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    			<%
+		    			if (cacheNode) {
+		    				%>
+		    				cachedNodes.put("<%=column%>", node);
+		    				<%
+	    				}
+	    				%>
 		    		}
 			    	<%
 		    	} else {
 			    	%>
-			    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
-			    	<%
+		    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    		<%
+	    			if (cacheNode) {
+	    				%>
+	    				cachedNodes.put("<%=column%>", node);
+	    				<%
+    				}
 		    	}
 		    }
 		}
@@ -184,35 +208,70 @@
 		
 		private void generateRelationshipCreation(Relationship relationship, IMetadataColumn column) {
 			%>
-			org.neo4j.graphdb.Node endNode_<%=relationship.getIndexName()%> = null;
+			org.neo4j.graphdb.Node endNode_<%=relationship.getIndex().getName()%> = null;
 			<%
-			if (relationship.getValue() != null && !relationship.getValue().isEmpty()) {
+			if (relationship.getIndex().getValue() != null && !relationship.getIndex().getValue().isEmpty()) {
 			%>
-				endNode_<%=relationship.getIndexName()%> = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", "<%=relationship.getValue()%>").getSingle();
+				endNode_<%=relationship.getIndex().getName()%> = indexNode_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", "<%=relationship.getIndex().getValue()%>").getSingle();
 			<%
 			} else if (column.isNullable()) {
 			%>
 				if (<%=incomingConnName%>.<%=column%> != null) {
-					endNode_<%=relationship.getIndexName()%> = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+					endNode_<%=relationship.getIndex().getName()%> = indexNode_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
 				}
 			<%
 			} else {
 				%>
-				endNode_<%=relationship.getIndexName()%> = indexNode_<%=relationship.getIndexName()%>.get("<%=relationship.getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+				endNode_<%=relationship.getIndex().getName()%> = indexNode_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
 				<%
 			}
 			%>
-			if (endNode_<%=relationship.getIndexName()%> != null) {
+			if (endNode_<%=relationship.getIndex().getName()%> != null) {
 				<%
 				switch (relationship.getDirection()) {
 					case OUTGOING :
 						%>		 	
-	    				node.createRelationshipTo(endNode_<%=relationship.getIndexName()%>, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
+	    				node.createRelationshipTo(endNode_<%=relationship.getIndex().getName()%>, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
 						<%
 						break;
 					case INCOMMING :
 						%>
-						endNode_<%=relationship.getIndexName()%>.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
+						endNode_<%=relationship.getIndex().getName()%>.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
+						<%
+						break;
+				}
+				%>			
+			}
+			<%
+		}
+		
+		private void generateRelationshipFromCache(Relationship relationship, IMetadataColumn column) {
+			%>
+			org.neo4j.graphdb.Node endNode_<%=column%> = null;
+			<%
+			if (column.isNullable()) {
+				%>
+				if (<%=incomingConnName%>.<%=column%> != null) {
+					endNode_<%=column%> = cachedNodes_<%=cid%>.get("<%=column%>");
+				}
+				<%
+			} else {
+				%>
+				endNode_<%=column%> = cachedNodes_<%=cid%>.get("<%=column%>");
+				<%
+			}
+			%>
+			if (endNode_<%=column%> != null) {
+				<%
+				switch (relationship.getDirection()) {
+					case OUTGOING :
+						%>		 	
+	    				node.createRelationshipTo(endNode_<%=column%>, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
+						<%
+						break;
+					case INCOMMING :
+						%>
+						endNode_<%=column%>.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
 						<%
 						break;
 				}

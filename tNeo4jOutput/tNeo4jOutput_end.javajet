@@ -24,12 +24,23 @@
 	<%
     
     boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
+    boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
+    String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
+    String dbconn = "dbService_" + connection;
 
 	if (!useExistingConnection) {
-	%>
+		%>
 		databaseService_<%=cid%>.shutdown();
-	<%
+		<%
 	} else {
+		if (batchImport) {
+			// Must shutdown database to prevent data corruption after batch importation
+			%>
+			//databaseService_<%=cid%>.shutdown();
+			//databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
+			//globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
+			<%
+		}
 		boolean shutdownDb = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__SHUTDOWN_DB__"));
 		if (shutdownDb) {
 		%>
@@ -38,4 +49,7 @@
 		}
 	}
 %>
-globalMap.put("<=%cid%>_NB_LINE", nb_line_<%=cid%>);
+if (cachedNodes != null) {
+	globalMap.put("<%=cid%>_CACHED_NODE", cachedNodes); 
+}
+globalMap.put("<%=cid%>_NB_LINE", nb_line_<%=cid%>);
