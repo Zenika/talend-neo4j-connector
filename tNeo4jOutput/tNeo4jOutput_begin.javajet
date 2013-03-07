@@ -108,7 +108,7 @@
     	<%
     	for (String indexName : indexNames) {
     		%>
-    		org.neo4j.unsafe.batchinsert.BatchInserterIndex indexInserter_<%=indexName%> = indexProvider.nodeIndex("types", org.neo4j.helpers.collection.MapUtil.stringMap("type", "exact"));
+    		org.neo4j.unsafe.batchinsert.BatchInserterIndex indexInserter_<%=indexName%> = indexProvider.nodeIndex("<%=indexName%>", org.neo4j.helpers.collection.MapUtil.stringMap("type", "exact"));
     		<%
     	}
     } else {
