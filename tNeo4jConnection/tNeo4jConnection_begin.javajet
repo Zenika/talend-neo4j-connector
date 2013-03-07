@@ -22,21 +22,17 @@
 	boolean remoteServer = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__REMOTE_SERVER__"));
 	boolean batchMode = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_MODE__"));
 	
-	if (batchMode) {
+	
+	if (remoteServer) {
+		String serverUrl = ElementParameterParser.getValue(node, "__SERVER_URL__");
 		%>
-		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = org.neo4j.unsafe.batchinsert.BatchInserters.batchDatabase(<%=dbPath%>);
+		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.rest.graphdb.RestGraphDatabase(<%=serverUrl%>);
 		<%
 	} else {
-		if (remoteServer) {
-			String serverUrl = ElementParameterParser.getValue(node, "__SERVER_URL__");
-			%>
-			org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.rest.graphdb.RestGraphDatabase(<%=serverUrl%>);
-			<%
-		} else {
-			%>
-			org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(<%=dbPath%>);
-			<%
-		}
+		%>
+		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(<%=dbPath%>);
+		<%
 	}
+	
 	%>
 	globalMap.put("dbService_<%=cid%>", databaseService_<%=cid%>);

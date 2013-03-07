@@ -36,9 +36,9 @@
 		if (batchImport) {
 			// Must shutdown database to prevent data corruption after batch importation
 			%>
-			//databaseService_<%=cid%>.shutdown();
-			//databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
-			//globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
+			databaseService_<%=cid%>.shutdown();
+			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
+			globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
 			<%
 		}
 		boolean shutdownDb = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__SHUTDOWN_DB__"));

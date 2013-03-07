@@ -28,11 +28,6 @@
 	  <DEFAULT>"http://localhost:7474/db/data"</DEFAULT>
 	</PARAMETER>
   </PARAMETERS>  
-  <ADVANCED_PARAMETERS> 
-    <PARAMETER NAME="BATCH_MODE" FIELD="CHECK" NUM_ROW="1">
-    	<DEFAULT>false</DEFAULT>
-    </PARAMETER>
-  </ADVANCED_PARAMETERS>  
   <CODEGENERATION> 
     <IMPORTS> 
       <IMPORT MODULE="concurrentlinkedhashmap-lru-1.3.1.jar" NAME="concurrentlinkedhashmap-lru-1.3.1" REQUIRED="true"/>  

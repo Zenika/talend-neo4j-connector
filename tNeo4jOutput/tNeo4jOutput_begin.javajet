@@ -50,7 +50,7 @@
     	boolean cacheNode = Boolean.valueOf(value.get("CACHE_NODE"));
     	if (cacheNode) {
     		%>
-    		cachedNodes = new java.util.HashMap<String, org.neo4j.graphdb.Node>();
+    		cachedNodes = new java.util.HashMap<String, org.neo4j.graphdb.Node>(2000000);
     		<%
     		break;
     	}
@@ -66,18 +66,29 @@
     	String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
     	String dbconn = "dbService_" + connection;
     	if (batchImport) {
+    		String nodeMappedMemory = ElementParameterParser.getValue(node, "__NODE_MAPPED_MEMORY__");
+    		String relationshipMappedMemory = ElementParameterParser.getValue(node, "__RELATIONSHIP_MAPPED_MEMORY__");
+    		String propertyMappedMemory = ElementParameterParser.getValue(node, "__PROPERTY_MAPPED_MEMORY__");
+    		String stringsMappedMemory = ElementParameterParser.getValue(node, "__STRINGS_MAPPED_MEMORY__");
+    		String arraysMappedMemory = ElementParameterParser.getValue(node, "__ARRAYS_MAPPED_MEMORY__");
     		%>
-    		//org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
-    		//String storeDir = "";
-    		//if (databaseService_<%=cid%> instanceof org.neo4j.kernel.EmbeddedGraphDatabase) {
-    			//org.neo4j.kernel.EmbeddedGraphDatabase db = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
-    			//storeDir = db.getStoreDir();
-    			//db.shutdown();
-    			//databaseService_<%=cid%> = org.neo4j.unsafe.batchinsert.BatchInserters.batchDatabase(db.getStoreDir());
-    		//} else {
-    			//throw new UnsupportedOperationException("Not supported yet");
-    		//}
+    		java.util.Map<String, String> importProperties = new java.util.HashMap<String, String>();
+    		importProperties.put("neostore.nodestore.db.mapped_memory", <%=nodeMappedMemory%>);
+    		importProperties.put("neostore.relationshipstore.db.mapped_memory", <%=relationshipMappedMemory%>);
+    		importProperties.put("neostore.propertystore.db.mapped_memory", <%=propertyMappedMemory%>);
+    		importProperties.put("neostore.propertystore.db.strings.mapped_memory", <%=stringsMappedMemory%>);
+    		importProperties.put("neostore.propertystore.db.arrays.mapped_memory", <%=arraysMappedMemory%>);
     		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
+    		String storeDir = "";
+    		if (databaseService_<%=cid%> instanceof org.neo4j.kernel.EmbeddedGraphDatabase) {
+    			org.neo4j.kernel.EmbeddedGraphDatabase db = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
+    			storeDir = db.getStoreDir();
+    			db.shutdown();
+    			databaseService_<%=cid%> = org.neo4j.unsafe.batchinsert.BatchInserters.batchDatabase(db.getStoreDir(), importProperties);
+    		} else {
+    			throw new UnsupportedOperationException("Not supported yet");
+    		}
+    		//org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
     		<%
     		boolean useCachedNodeSource = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_CACHED_NODE__"));
     		if (useCachedNodeSource) {
