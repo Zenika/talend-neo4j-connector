@@ -25,7 +25,7 @@
     final String cid = node.getUniqueName();
     String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
     String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
-    boolean batchMode = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
+    boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
     
     List<IMetadataColumn> columnList = null;
     List<IMetadataTable> metadatas = node.getMetadataList();
@@ -131,12 +131,8 @@
 		    		for (Index index : data.getIndexes()) {
 		    			generateIndexCreation(index, column);
 		    		}
-		    		if (data.getRelationships().isFromCache()) {
-		    			generateRelationshipFromCache(data.getRelationships().getRelationship(), column);
-		    		} else {
-			    		for (Relationship relationship : data.getRelationships()) {
-			    			generateRelationshipCreation(relationship, column);
-			    		}
+		    		for (Relationship relationship : data.getRelationships()) {
+		    			generateRelationshipCreation(relationship, column);
 		    		}
 		    	}
 		    }
@@ -148,13 +144,6 @@
 	    		if (<%=incomingConnName%>.<%=column%> != null) {
 	    			java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
 	    			node.setProperty("<%=column%>", date.getTime());
-	    			<%
-	    			if (cacheNode) {
-	    				%>
-	    				cachedNodes.put("<%=column%>", node);
-	    				<%
-	    			}
-	    			%>
 	    		}
 	    		<%
     		} else {
@@ -162,24 +151,12 @@
 			    	%>
 		    		if (<%=incomingConnName%>.<%=column%> != null) {
 		    			node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
-		    			<%
-		    			if (cacheNode) {
-		    				%>
-		    				cachedNodes.put("<%=column%>", node);
-		    				<%
-	    				}
-	    				%>
 		    		}
 			    	<%
 		    	} else {
 			    	%>
 		    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
-		    		<%
-	    			if (cacheNode) {
-	    				%>
-	    				cachedNodes.put("<%=column%>", node);
-	    				<%
-    				}
+	    			<%
 		    	}
 		    }
 		}
@@ -244,52 +221,143 @@
 			}
 			<%
 		}
+	}
+    
+    class Neo4jBatchUtils {
+    	private List<IMetadataColumn> columnList;
+		private String incomingConnName;
 		
-		private void generateRelationshipFromCache(Relationship relationship, IMetadataColumn column) {
+		public Neo4jBatchUtils(String incomingConnName, List<IMetadataColumn> columnList) {
+			this.incomingConnName = incomingConnName;
+			this.columnList = columnList;
+		}
+		
+		public void generateNodeBatchInsert() {
 			%>
-			org.neo4j.graphdb.Node endNode_<%=column%> = null;
+			java.util.Map<String, Object> properties = new java.util.HashMap<String, Object>();
 			<%
-			if (column.isNullable()) {
+			for (IMetadataColumn column : columnList) {		
+	    		putBatchPropertyInsertInMap(column);
+		    }
+		    // Must compute all properties before node creation for best performances
+		    generateNode();
+		    for (IMetadataColumn column : columnList) {
+		    	if (column instanceof MetadataColumnExt) {		    		
+		    		MetadataColumnExt columnExt = (MetadataColumnExt) column;		    		
+		    		Neo4jData data = columnExt.getData();
+		    		for (Index index : data.getIndexes()) {
+		    			generateIndexCreation(index, column);
+		    		}		    		
+		    		for (Relationship relationship : data.getRelationships()) {
+		    			generateRelationshipCreation(relationship, column);
+		    		}
+		    	}
+	    	}
+		}
+		
+		private void putBatchPropertyInsertInMap(IMetadataColumn column) {
+			if (column.getTalendType().equals("id_Date")) {
+	    		%>
+	    		if (<%=incomingConnName%>.<%=column%> != null) {
+	    			java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
+	    			properties.put("<%=column%>", date.getTime());
+	    		}
+	    		<%
+    		} else {
+		    	if (column.isNullable()) {
+			    	%>
+		    		if (<%=incomingConnName%>.<%=column%> != null) {
+		    			properties.put("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    		}
+			    	<%
+		    	} else {
+			    	%>
+		    		properties.put("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    		<%
+		    	}
+		    }
+		}
+		
+		private void generateNode() {
+			%>
+			long node = inserter.createNode(properties);			
+			<%
+		}
+		
+		private void generateIndexCreation(Index index, IMetadataColumn column) {
+			boolean fromValueColumn = index.getValue() == null || index.getValue().isEmpty();
+			%>
+			java.util.Map<String, Object> index_<%=index.getName()%>_properties = new java.util.HashMap<String, Object>();
+			<%
+			if (fromValueColumn) {
+				%>	    
+				index_<%=index.getName()%>_properties.put("<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);
+				<%
+			} else {
+				%>		
+				index_<%=index.getName()%>_properties.put("<%=index.getKey()%>", "<%=index.getValue()%>");
+				<%
+			} 
+			
+			if (index.isUnique()) {
 				%>
-				if (<%=incomingConnName%>.<%=column%> != null) {
-					endNode_<%=column%> = cachedNodes_<%=cid%>.get("<%=column%>");
-				}
+				indexInserter_<%=index.getName()%>.updateOrAdd(node, index_<%=index.getName()%>_properties);
 				<%
 			} else {
 				%>
-				endNode_<%=column%> = cachedNodes_<%=cid%>.get("<%=column%>");
+				indexInserter_<%=index.getName()%>.add(node, index_<%=index.getName()%>_properties);			
 				<%
 			}
-			%>
-			if (endNode_<%=column%> != null) {
-				<%
-				switch (relationship.getDirection()) {
-					case OUTGOING :
-						%>		 	
-	    				node.createRelationshipTo(endNode_<%=column%>, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
-						<%
-						break;
-					case INCOMMING :
-						%>
-						endNode_<%=column%>.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
-						<%
-						break;
-				}
-				%>			
-			}
-			<%
 		}
-	}
+		
+		private void generateRelationshipCreation(Relationship relationship, IMetadataColumn column) {
+			%>
+			long endNode_<%=relationship.getIndex().getName()%> = 0;
+			<%
+			if (relationship.getIndex().getValue() != null && !relationship.getIndex().getValue().isEmpty()) {
+			%>
+				endNode_<%=relationship.getIndex().getName()%> = indexInserter_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", "<%=relationship.getIndex().getValue()%>").getSingle();
+			<%
+			} else if (column.isNullable()) {
+			%>
+				if (<%=incomingConnName%>.<%=column%> != null) {
+					endNode_<%=relationship.getIndex().getName()%> = indexInserter_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+				}
+			<%
+			} else {
+				%>
+				endNode_<%=relationship.getIndex().getName()%> = indexInserter_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+				<%
+			}
+			switch (relationship.getDirection()) {
+				case OUTGOING :
+					%>		 	
+    				inserter.createRelationship(node, endNode_<%=relationship.getIndex().getName()%>, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"), null);
+					<%
+					break;
+				case INCOMMING :
+					%>
+					inserter.createRelationship(endNode_<%=relationship.getIndex().getName()%>, node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"), null);
+					<%
+					break;
+			}
+		}
+    }
     
-    Neo4jUtils neo4jUtils = new Neo4jUtils(incomingConnName, columnList);
-    if (dataAction.equals("INSERT")) {
-	    neo4jUtils.generateNodeInsert();
-	} else if (dataAction.equals("INSERT_OR_UPDATE")) {
-		neo4jUtils.generateNodeInsertOrUpdate();
-	} else if (dataAction.equals("UPDATE")) {
-		neo4jUtils.generateNodeUpdate();
-	} else if (dataAction.equals("DELETE")) {
-		neo4jUtils.generateNodeDelete();
+    if (batchImport) {
+    	Neo4jBatchUtils neo4jBatchUtils = new Neo4jBatchUtils(incomingConnName, columnList);
+    	neo4jBatchUtils.generateNodeBatchInsert();
+    } else {
+    	Neo4jUtils neo4jUtils = new Neo4jUtils(incomingConnName, columnList);
+	    if (dataAction.equals("INSERT")) {
+		    neo4jUtils.generateNodeInsert();
+		} else if (dataAction.equals("INSERT_OR_UPDATE")) {
+			neo4jUtils.generateNodeInsertOrUpdate();
+		} else if (dataAction.equals("UPDATE")) {
+			neo4jUtils.generateNodeUpdate();
+		} else if (dataAction.equals("DELETE")) {
+			neo4jUtils.generateNodeDelete();
+		}
 	}
 %>
 if (counter % Long.parseLong(<%=commitEvery%>) == 0) {

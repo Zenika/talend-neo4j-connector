@@ -10,7 +10,10 @@
 		org.talend.core.model.metadata.types.JavaTypesManager
 		org.talend.core.model.metadata.types.JavaType
 		java.util.List 
-    	java.util.Map		
+    	java.util.Map 
+    	java.util.Set 
+    	java.util.HashSet
+    	java.util.Arrays
 	" 
 %>
 <% 
@@ -27,6 +30,7 @@
     boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
     String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
     String dbconn = "dbService_" + connection;
+    List<Map<String, String>> values = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__VALUES__");
 
 	if (!useExistingConnection) {
 		%>
@@ -34,9 +38,22 @@
 		<%
 	} else {
 		if (batchImport) {
+			Set<String> indexNames = new HashSet();
+		    for (Map<String, String> value : values) {
+		   		String strIndexNames = value.get("INDEX_NAMES");
+		   		if (strIndexNames != null && !strIndexNames.isEmpty()) {
+		   			indexNames.addAll(Arrays.asList(strIndexNames.split(",")));
+		   		}
+		    }
+		    for (String indexName : indexNames) {
+		    	%>
+		    	indexInserter_<%=indexName%>.flush();
+		    	<%
+		    }
 			// Must shutdown database to prevent data corruption after batch importation
 			%>
-			databaseService_<%=cid%>.shutdown();
+			indexProvider.shutdown();
+			inserter.shutdown();
 			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
 			globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
 			<%

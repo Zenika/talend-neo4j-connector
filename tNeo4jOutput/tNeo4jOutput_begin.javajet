@@ -46,16 +46,6 @@
     java.util.Map<String, org.neo4j.graphdb.Node> cachedNodes = null;
     <%
     
-    for (Map<String, String> value : values) {
-    	boolean cacheNode = Boolean.valueOf(value.get("CACHE_NODE"));
-    	if (cacheNode) {
-    		%>
-    		cachedNodes = new java.util.HashMap<String, org.neo4j.graphdb.Node>(2000000);
-    		<%
-    		break;
-    	}
-    }
-    
     // Add update/delete index
     String action = (String) ElementParameterParser.getObjectValue(node, "__DATA_ACTION__");
     if (!action.equals("INSERT")) {
@@ -80,23 +70,16 @@
     		importProperties.put("neostore.propertystore.db.arrays.mapped_memory", <%=arraysMappedMemory%>);
     		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
     		String storeDir = "";
+    		org.neo4j.unsafe.batchinsert.BatchInserter inserter = null;
     		if (databaseService_<%=cid%> instanceof org.neo4j.kernel.EmbeddedGraphDatabase) {
     			org.neo4j.kernel.EmbeddedGraphDatabase db = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
     			storeDir = db.getStoreDir();
     			db.shutdown();
-    			databaseService_<%=cid%> = org.neo4j.unsafe.batchinsert.BatchInserters.batchDatabase(db.getStoreDir(), importProperties);
+    			inserter = org.neo4j.unsafe.batchinsert.BatchInserters.inserter(db.getStoreDir(), importProperties);
     		} else {
     			throw new UnsupportedOperationException("Not supported yet");
     		}
-    		//org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
     		<%
-    		boolean useCachedNodeSource = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_CACHED_NODE__"));
-    		if (useCachedNodeSource) {
-	    		String cachedNodeSource = ElementParameterParser.getValue(node, "__CACHED_NODE_SOURCE__");
-	    		%>
-	    		java.util.Map<String, org.neo4j.graphdb.Node> cachedNodes_<%=cid%> = (java.util.Map<String, org.neo4j.graphdb.Node>) globalMap.get("<%=cachedNodeSource%>_CACHED_NODE"); 
-	    		<%
-    		}
     	} else {
     		%>
 			org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
@@ -119,11 +102,22 @@
 		}
     }
     // Index configuration
-    for (String indexName : indexNames) {
+    if (batchImport) {
     	%>
-    	org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=indexName%> = databaseService_<%=cid%>.index().forNodes("<%=indexName%>");
+    	org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider indexProvider = new org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider(inserter);
     	<%
-    }
+    	for (String indexName : indexNames) {
+    		%>
+    		org.neo4j.unsafe.batchinsert.BatchInserterIndex indexInserter_<%=indexName%> = indexProvider.nodeIndex("types", org.neo4j.helpers.collection.MapUtil.stringMap("type", "exact"));
+    		<%
+    	}
+    } else {
+	    for (String indexName : indexNames) {	    	
+	    	%>
+	    	org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=indexName%> = databaseService_<%=cid%>.index().forNodes("<%=indexName%>");
+	    	<%
+	    }
+	}
     // Auto index configuration
     if (autoIndexedColumns.size() > 0) {
     	%>
