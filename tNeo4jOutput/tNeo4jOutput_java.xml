@@ -39,10 +39,10 @@
     <PARAMETER NAME="DATA_ACTION" FIELD="CLOSED_LIST" NUM_ROW="4">
     	<ITEMS DEFAULT="INSERT">
    			<ITEM NAME="INSERT" VALUE="INSERT"/>
-   			<ITEM NAME="INSERT_OR_UPDATE" VALUE="INSERT_OR_UPDATE" SHOW_IF="BATCH_IMPORT == false"/>
-   			<ITEM NAME="UPDATE" VALUE="UPDATE" SHOW_IF="BATCH_IMPORT == false"/>
-   			<ITEM NAME="UPDATE_OR_INSERT" VALUE="UPDATE_OR_INSERT" SHOW_IF="BATCH_IMPORT == false"/>
-   			<ITEM NAME="DELETE" VALUE="DELETE" SHOW_IF="BATCH_IMPORT == false"/>
+   			<ITEM NAME="INSERT_OR_UPDATE" VALUE="INSERT_OR_UPDATE" SHOW_IF="BATCH_IMPORT == 'false'"/>
+   			<ITEM NAME="UPDATE" VALUE="UPDATE" SHOW_IF="BATCH_IMPORT == 'false'"/>
+   			<ITEM NAME="UPDATE_OR_INSERT" VALUE="UPDATE_OR_INSERT" SHOW_IF="BATCH_IMPORT == 'false'"/>
+   			<ITEM NAME="DELETE" VALUE="DELETE" SHOW_IF="BATCH_IMPORT == 'false'"/>
     	</ITEMS>
     </PARAMETER>
     <PARAMETER NAME="INDEX_NAME" FIELD="TEST" NUM_ROW="5" SHOW_IF="DATA_ACTION != 'INSERT'" GROUP="INDEX_LOOKUP">
@@ -75,7 +75,7 @@
     	<DEFAULT>false</DEFAULT>
     </PARAMETER>
     <PARAMETER NAME="BATCH_INFORMATION_1" FIELD="LABEL" NUM_ROW="4">
-    	<DEFAULT>Be careful with batch importer. For more information refer to documentation.</DEFAULT>
+    	<DEFAULT>Be careful with batch importer. For more informations refer to documentation.</DEFAULT>
     </PARAMETER>
     <PARAMETER NAME="BATCH_INFORMATION_2" FIELD="LABEL" NUM_ROW="5">
     	<DEFAULT>Never stop job during the importation. Some data files could be corrupted. MAKE BACKUP !!!</DEFAULT>

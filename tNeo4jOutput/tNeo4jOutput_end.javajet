@@ -66,7 +66,4 @@
 		}
 	}
 %>
-if (cachedNodes != null) {
-	globalMap.put("<%=cid%>_CACHED_NODE", cachedNodes); 
-}
 globalMap.put("<%=cid%>_NB_LINE", nb_line_<%=cid%>);

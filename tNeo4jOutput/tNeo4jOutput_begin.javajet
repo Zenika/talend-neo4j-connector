@@ -42,10 +42,6 @@
    		}
     }
     
-    %>
-    java.util.Map<String, org.neo4j.graphdb.Node> cachedNodes = null;
-    <%
-    
     // Add update/delete index
     String action = (String) ElementParameterParser.getObjectValue(node, "__DATA_ACTION__");
     if (!action.equals("INSERT")) {

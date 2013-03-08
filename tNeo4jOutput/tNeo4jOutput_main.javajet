@@ -127,7 +127,7 @@
 		    	if (column instanceof MetadataColumnExt) {		    		
 		    		MetadataColumnExt columnExt = (MetadataColumnExt) column;		    		
 		    		Neo4jData data = columnExt.getData();
-		    		generateNodePropertyInsert(column, data.isCacheNode());
+		    		generateNodePropertyInsert(column);
 		    		for (Index index : data.getIndexes()) {
 		    			generateIndexCreation(index, column);
 		    		}
@@ -138,7 +138,7 @@
 		    }
 		}
 	
-		private void generateNodePropertyInsert(IMetadataColumn column, boolean cacheNode) {
+		private void generateNodePropertyInsert(IMetadataColumn column) {
 			if (column.getTalendType().equals("id_Date")) {
 	    		%>
 	    		if (<%=incomingConnName%>.<%=column%> != null) {
