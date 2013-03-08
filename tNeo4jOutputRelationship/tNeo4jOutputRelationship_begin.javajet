@@ -19,13 +19,40 @@
     String cid = node.getUniqueName();	
     
     boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
+    boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
         
     if (useExistingConnection) {
     	String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
     	String dbconn = "dbService_" + connection;
-    	%>
-    	org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
-    	<%
+    	if (batchImport) {
+    		String relationshipMappedMemory = ElementParameterParser.getValue(node, "__RELATIONSHIP_MAPPED_MEMORY__");
+    		String propertyMappedMemory = ElementParameterParser.getValue(node, "__PROPERTY_MAPPED_MEMORY__");
+    		String stringsMappedMemory = ElementParameterParser.getValue(node, "__STRINGS_MAPPED_MEMORY__");
+    		String arraysMappedMemory = ElementParameterParser.getValue(node, "__ARRAYS_MAPPED_MEMORY__");
+    		%>
+    		java.util.Map<String, String> importProperties = new java.util.HashMap<String, String>();
+    		importProperties.put("neostore.nodestore.db.mapped_memory", "0M");
+    		importProperties.put("neostore.relationshipstore.db.mapped_memory", <%=relationshipMappedMemory%>);
+    		importProperties.put("neostore.propertystore.db.mapped_memory", <%=propertyMappedMemory%>);
+    		importProperties.put("neostore.propertystore.db.strings.mapped_memory", <%=stringsMappedMemory%>);
+    		importProperties.put("neostore.propertystore.db.arrays.mapped_memory", <%=arraysMappedMemory%>);
+    		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
+    		String storeDir = "";
+    		org.neo4j.unsafe.batchinsert.BatchInserter inserter = null;
+    		if (databaseService_<%=cid%> instanceof org.neo4j.kernel.EmbeddedGraphDatabase) {
+    			org.neo4j.kernel.EmbeddedGraphDatabase db = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
+    			storeDir = db.getStoreDir();
+    			db.shutdown();
+    			inserter = org.neo4j.unsafe.batchinsert.BatchInserters.inserter(db.getStoreDir(), importProperties);
+    		} else {
+    			throw new UnsupportedOperationException("Not supported yet");
+    		}
+    		<%
+    	} else {
+	    	%>
+	    	org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
+	    	<%
+    	}
     } else {
     	String databasePath = ElementParameterParser.getValue(node, "__DATABASE_PATH__");
     	%>
@@ -36,10 +63,20 @@
     String endIndexName = ElementParameterParser.getValue(node, "__END_INDEX_NAME__");
     
     String relationshipType = ElementParameterParser.getValue(node, "__RELATIONSHIP_TYPE__");
+    if (batchImport) {
+    	%>
+    	org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider indexProvider = new org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider(inserter);
+    	org.neo4j.unsafe.batchinsert.BatchInserterIndex startIndexInserter = indexProvider.nodeIndex("<%=startIndexName%>", org.neo4j.helpers.collection.MapUtil.stringMap("type", "exact"));
+    	org.neo4j.unsafe.batchinsert.BatchInserterIndex endIndexInserter = indexProvider.nodeIndex("<%=endIndexName%>", org.neo4j.helpers.collection.MapUtil.stringMap("type", "exact"));
+    	<%
+    } else {
+    	%>
+    	org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> startIndexNode_<%=cid%> = databaseService_<%=cid%>.index().forNodes("<%=startIndexName%>");
+    	org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> endIndexNode_<%=cid%> = databaseService_<%=cid%>.index().forNodes("<%=endIndexName%>");
+    	<%
+    }
     %>
-    org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> startIndexNode_<%=cid%> = databaseService_<%=cid%>.index().forNodes("<%=startIndexName%>");
-    org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> endIndexNode_<%=cid%> = databaseService_<%=cid%>.index().forNodes("<%=endIndexName%>");
-	
+    
 	org.neo4j.graphdb.RelationshipType relationshipType_<%=cid%> = org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationshipType%>");
 
 	org.neo4j.graphdb.Transaction tx = databaseService_<%=cid%>.beginTx();

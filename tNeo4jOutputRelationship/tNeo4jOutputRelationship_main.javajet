@@ -16,7 +16,7 @@
 <% 
     CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
     INode node = (INode)codeGenArgument.getArgument();
-    String cid = node.getUniqueName();	
+    final String cid = node.getUniqueName();	
     
     List<IMetadataColumn> columnList = null;
     List<IMetadataTable> metadatas = node.getMetadataList();
@@ -42,19 +42,128 @@
     }
     
     String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
+    boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
     
-    String startIndexKey = ElementParameterParser.getValue(node, "__START_INDEX_KEY__");
-    String startIndexValueColumn = ElementParameterParser.getValue(node, "__START_INDEX_VALUE__");
+    final String startIndexKey = ElementParameterParser.getValue(node, "__START_INDEX_KEY__");
+    final String startIndexValueColumn = ElementParameterParser.getValue(node, "__START_INDEX_VALUE__");
     
-    String endIndexKey = ElementParameterParser.getValue(node, "__END_INDEX_KEY__");
-    String endIndexValueColumn = ElementParameterParser.getValue(node, "__END_INDEX_VALUE__");
+    final String endIndexKey = ElementParameterParser.getValue(node, "__END_INDEX_KEY__");
+    final String endIndexValueColumn = ElementParameterParser.getValue(node, "__END_INDEX_VALUE__");
     
-    String relationshipDirection = ElementParameterParser.getValue(node, "__RELATIONSHIP_DIRECTION__");
+    final String relationshipDirection = ElementParameterParser.getValue(node, "__RELATIONSHIP_DIRECTION__");
     
-    List<Map<String, String>> mappingTable = (List<Map<String,String>>) ElementParameterParser.getObjectValue(node, "__MAPPING__");
+    final List<Map<String, String>> mappingTable = (List<Map<String,String>>) ElementParameterParser.getObjectValue(node, "__MAPPING__");
     
-    IMetadataColumn startColumn = metadata.getColumn(startIndexValueColumn);
-    IMetadataColumn endColumn = metadata.getColumn(endIndexValueColumn);
+    final IMetadataColumn startColumn = metadata.getColumn(startIndexValueColumn);
+    final IMetadataColumn endColumn = metadata.getColumn(endIndexValueColumn);
+    
+    class Neo4jRelationshipInserter {
+    
+    	private String incomingConnName;
+    	private IMetadataTable metadata;
+    	
+    	public Neo4jRelationshipInserter(String incomingConnName, IMetadataTable metadata) {
+    		this.incomingConnName = incomingConnName;
+			this.metadata = metadata;
+    	} 
+    
+    	public void insert() {
+    		%>
+			org.neo4j.graphdb.Node startNode = startIndexNode_<%=cid%>.get("<%=startIndexKey%>", <%=incomingConnName%>.<%=startColumn%>).getSingle();
+			org.neo4j.graphdb.Node endNode = endIndexNode_<%=cid%>.get("<%=endIndexKey%>", <%=incomingConnName%>.<%=endColumn%>).getSingle();	
+			<%
+			if (relationshipDirection.equals("OUTGOING")) {
+				%>
+				org.neo4j.graphdb.Relationship relationship = startNode.createRelationshipTo(endNode, relationshipType_<%=cid%>);
+				<%
+			} else {
+				%>
+				org.neo4j.graphdb.Relationship relationship = endNode.createRelationshipTo(startNode, relationshipType_<%=cid%>);
+				<%
+			}
+			for (Map<String, String> row : mappingTable) {
+				String columnName = row.get("INPUT_COLUMN");
+				String propertyName = row.get("PROPERTY_NAME");
+				if (columnName != null && !columnName.isEmpty()) {
+					IMetadataColumn column = metadata.getColumn(columnName);
+					computeValue(column);
+					%>
+					if (value_<%=column%> != null) {
+						<%
+						if (propertyName != null && !propertyName.isEmpty()) {
+							%>
+							relationship.setProperty("<%=propertyName%>", value_<%=column%>); 
+							<%
+						} else {
+							%>
+							relationship.setProperty("<%=column%>", value_<%=column%>);
+							<%
+						}
+						%>
+					}
+					<%
+				}
+			}
+    	}
+    
+    	public void computeValue(IMetadataColumn column) {
+    		if (column.getTalendType().equals("id_Date")) {
+				%>
+				Object value_<%=column%> = null;
+				if (<%=incomingConnName%>.<%=column%> != null) {
+					java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
+					value_<%=column%> = date.getTime();
+				}
+				<%
+			} else {
+				%>
+				Object value_<%=column%> = <%=incomingConnName%>.<%=column%>;
+				<%
+			}
+    	}
+    
+    	public void batchInsert() {
+    		%>
+    		long startNode = startIndexInserter.get("<%=startIndexKey%>", <%=incomingConnName%>.<%=startColumn%>).getSingle();
+    		long endNode = endIndexInserter.get("<%=endIndexKey%>", <%=incomingConnName%>.<%=endColumn%>).getSingle();
+    		java.util.Map<String, Object> properties = new java.util.HashMap<String, Object>();
+    		<%
+    		for (Map<String, String> row : mappingTable) {
+				String columnName = row.get("INPUT_COLUMN");
+				String propertyName = row.get("PROPERTY_NAME");
+				if (columnName != null && !columnName.isEmpty()) {
+					IMetadataColumn column = metadata.getColumn(columnName);
+					computeValue(column);
+					%>
+					if (value_<%=column%> != null) {
+						<%
+						if (propertyName != null && !propertyName.isEmpty()) {
+							%>
+							properties.put("<%=propertyName%>", value_<%=column%>); 
+							<%
+						} else {
+							%>
+							properties.put("<%=column%>", value_<%=column%>);
+							<%
+						}
+						%>
+					}
+					<%
+				}
+			}
+			if (relationshipDirection.equals("OUTGOING")) {
+				%>
+				inserter.createRelationship(startNode, endNode, relationshipType_<%=cid%>, properties);
+				<%
+			} else {
+				%>
+				inserter.createRelationship(endNode, startNode, relationshipType_<%=cid%>, properties);
+				<%
+			}
+    	}
+    }
+    
+    Neo4jRelationshipInserter relationshipInserter = new Neo4jRelationshipInserter(incomingConnName, metadata);
     
     if (startColumn != null && endColumn != null) {
     	// Create dynamique condition according to start and end columns state
@@ -75,56 +184,11 @@
     		{
     		<%
     	}
-    	%>
-	    		org.neo4j.graphdb.Node startNode = startIndexNode_<%=cid%>.get("<%=startIndexKey%>", <%=incomingConnName%>.<%=startColumn%>).getSingle();
-				org.neo4j.graphdb.Node endNode = endIndexNode_<%=cid%>.get("<%=endIndexKey%>", <%=incomingConnName%>.<%=endColumn%>).getSingle();
-				
-				<%
-				if (relationshipDirection.equals("OUTGOING")) {
-					%>
-					org.neo4j.graphdb.Relationship relationship = startNode.createRelationshipTo(endNode, relationshipType_<%=cid%>);
-					<%
-				} else {
-					%>
-					org.neo4j.graphdb.Relationship relationship = endNode.createRelationshipTo(startNode, relationshipType_<%=cid%>);
-					<%
-				}
-				for (Map<String, String> row : mappingTable) {
-					String columnName = row.get("INPUT_COLUMN");
-					String propertyName = row.get("PROPERTY_NAME");
-					if (columnName != null && !columnName.isEmpty()) {
-						IMetadataColumn column = metadata.getColumn(columnName);
-						if (column.getTalendType().equals("id_Date")) {
-							%>
-							Object value_<%=column%> = null;
-							if (<%=incomingConnName%>.<%=column%> != null) {
-								java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
-								value_<%=column%> = date.getTime();
-							}
-							<%
-						} else {
-							%>
-							Object value_<%=column%> = <%=incomingConnName%>.<%=column%>;
-							<%
-						}
-						%>
-						if (value_<%=column%> != null) {
-							<%
-							if (propertyName != null && !propertyName.isEmpty()) {
-								%>
-								relationship.setProperty("<%=propertyName%>", value_<%=column%>); 
-								<%
-							} else {
-								%>
-								relationship.setProperty("<%=column%>", value_<%=column%>);
-								<%
-							}
-							%>
-						}
-						<%
-					}					
-				}
-			%>
+    			if (batchImport) {
+	    			relationshipInserter.batchInsert();
+	    		} else {
+	    			relationshipInserter.insert();
+	    		} %>
 	    	}
 	    	<%
     }
