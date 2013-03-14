@@ -24,7 +24,8 @@
 	<%
     
     boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
-    boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
+    boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));		
+	boolean shutdownDb = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__SHUTDOWN_DB__"));
     String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
     String dbconn = "dbService_" + connection;
 
@@ -33,19 +34,22 @@
 		databaseService_<%=cid%>.shutdown();
 	<%
 	} else {
-		if (batchImport) {
-			%>
-			indexProvider.shutdown();
-			inserter.shutdown();
-			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
-			globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
-			<%
-		}
-		boolean shutdownDb = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__SHUTDOWN_DB__"));
 		if (shutdownDb) {
 		%>
 			databaseService_<%=cid%>.shutdown();
 		<%
+		}
+	}
+	if (batchImport) {
+		%>
+		indexProvider.shutdown();
+		inserter.shutdown();
+		<%
+		if (useExistingConnection && !shutdownDb) {
+			%>
+			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
+			globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
+			<%
 		}
 	}
 %>

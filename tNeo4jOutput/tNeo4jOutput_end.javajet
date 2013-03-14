@@ -62,8 +62,6 @@
 		indexProvider.shutdown();
 		inserter.shutdown();
 		<%
-		System.out.println("Use existing connection: " + useExistingConnection);
-		System.out.println("Shutdown: " + shutdownDb);
 		if (useExistingConnection && !shutdownDb) {
 			%>
 			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
