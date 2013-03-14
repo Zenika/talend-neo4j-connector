@@ -18,6 +18,11 @@
     INode node = (INode)codeGenArgument.getArgument();
     String cid = node.getUniqueName();	
     
+    %>
+	tx.success();
+	tx.finish();
+	<%
+    
     String userNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
     
     if (userNbLine.equals("NB_NODE_INSERTED")) {
