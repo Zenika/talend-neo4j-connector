@@ -28,41 +28,47 @@
     
     boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
     boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
+    boolean shutdownDb = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__SHUTDOWN_DB__"));
     String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
     String dbconn = "dbService_" + connection;
     List<Map<String, String>> values = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__VALUES__");
 
-	if (!useExistingConnection) {
+	if (!useExistingConnection && !batchImport) {
 		%>
 		databaseService_<%=cid%>.shutdown();
 		<%
-	} else {
-		if (batchImport) {
-			Set<String> indexNames = new HashSet();
-		    for (Map<String, String> value : values) {
-		   		String strIndexNames = value.get("INDEX_NAMES");
-		   		if (strIndexNames != null && !strIndexNames.isEmpty()) {
-		   			indexNames.addAll(Arrays.asList(strIndexNames.split(",")));
-		   		}
-		    }
-		    for (String indexName : indexNames) {
-		    	%>
-		    	indexInserter_<%=indexName%>.flush();
-		    	<%
-		    }
-			// Must shutdown database to prevent data corruption after batch importation
-			%>
-			indexProvider.shutdown();
-			inserter.shutdown();
-			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
-			globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
-			<%
-		}
-		boolean shutdownDb = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__SHUTDOWN_DB__"));
+	} else {		
 		if (shutdownDb) {
 		%>
 			databaseService_<%=cid%>.shutdown();
 		<%
+		}
+	}
+	if (batchImport) {
+		Set<String> indexNames = new HashSet();
+	    for (Map<String, String> value : values) {
+	   		String strIndexNames = value.get("INDEX_NAMES");
+	   		if (strIndexNames != null && !strIndexNames.isEmpty()) {
+	   			indexNames.addAll(Arrays.asList(strIndexNames.split(",")));
+	   		}
+	    }
+	    for (String indexName : indexNames) {
+	    	%>
+	    	indexInserter_<%=indexName%>.flush();
+	    	<%
+	    }
+		// Must shutdown database to prevent data corruption after batch importation
+		%>
+		indexProvider.shutdown();
+		inserter.shutdown();
+		<%
+		System.out.println("Use existing connection: " + useExistingConnection);
+		System.out.println("Shutdown: " + shutdownDb);
+		if (useExistingConnection && !shutdownDb) {
+			%>
+			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
+			globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
+			<%
 		}
 	}
 %>

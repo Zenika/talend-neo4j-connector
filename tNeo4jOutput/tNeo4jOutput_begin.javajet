@@ -51,38 +51,9 @@
     if (useExistingConnection) {
     	String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
     	String dbconn = "dbService_" + connection;
-    	if (batchImport) {
-    		String nodeMappedMemory = ElementParameterParser.getValue(node, "__NODE_MAPPED_MEMORY__");
-    		String relationshipMappedMemory = ElementParameterParser.getValue(node, "__RELATIONSHIP_MAPPED_MEMORY__");
-    		String propertyMappedMemory = ElementParameterParser.getValue(node, "__PROPERTY_MAPPED_MEMORY__");
-    		String stringsMappedMemory = ElementParameterParser.getValue(node, "__STRINGS_MAPPED_MEMORY__");
-    		String arraysMappedMemory = ElementParameterParser.getValue(node, "__ARRAYS_MAPPED_MEMORY__");
-    		%>
-    		java.util.Map<String, String> importProperties = new java.util.HashMap<String, String>();
-    		importProperties.put("neostore.nodestore.db.mapped_memory", <%=nodeMappedMemory%>);
-    		importProperties.put("neostore.relationshipstore.db.mapped_memory", <%=relationshipMappedMemory%>);
-    		importProperties.put("neostore.propertystore.db.mapped_memory", <%=propertyMappedMemory%>);
-    		importProperties.put("neostore.propertystore.db.strings.mapped_memory", <%=stringsMappedMemory%>);
-    		importProperties.put("neostore.propertystore.db.arrays.mapped_memory", <%=arraysMappedMemory%>);
-    		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
-    		String storeDir = "";
-    		org.neo4j.unsafe.batchinsert.BatchInserter inserter = null;
-    		if (databaseService_<%=cid%> instanceof org.neo4j.kernel.EmbeddedGraphDatabase) {
-    			org.neo4j.kernel.EmbeddedGraphDatabase db = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
-    			storeDir = db.getStoreDir();
-    			db.shutdown();
-    			inserter = org.neo4j.unsafe.batchinsert.BatchInserters.inserter(db.getStoreDir(), importProperties);
-    		} else {
-    			throw new UnsupportedOperationException("Not supported yet");
-    		}
-    		<%
-    	} else {
-    		%>
-			org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
-			<%
-    	}
-		%>
-	<%
+    	%>
+		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
+		<%
     } else {
     	boolean remoteServer = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__REMOTE_SERVER__"));
     	if (remoteServer) {
@@ -99,7 +70,28 @@
     }
     // Index configuration
     if (batchImport) {
+		String nodeMappedMemory = ElementParameterParser.getValue(node, "__NODE_MAPPED_MEMORY__");
+		String relationshipMappedMemory = ElementParameterParser.getValue(node, "__RELATIONSHIP_MAPPED_MEMORY__");
+		String propertyMappedMemory = ElementParameterParser.getValue(node, "__PROPERTY_MAPPED_MEMORY__");
+		String stringsMappedMemory = ElementParameterParser.getValue(node, "__STRINGS_MAPPED_MEMORY__");
+		String arraysMappedMemory = ElementParameterParser.getValue(node, "__ARRAYS_MAPPED_MEMORY__");
     	%>
+    	java.util.Map<String, String> importProperties = new java.util.HashMap<String, String>();
+		importProperties.put("neostore.nodestore.db.mapped_memory", <%=nodeMappedMemory%>);
+		importProperties.put("neostore.relationshipstore.db.mapped_memory", <%=relationshipMappedMemory%>);
+		importProperties.put("neostore.propertystore.db.mapped_memory", <%=propertyMappedMemory%>);
+		importProperties.put("neostore.propertystore.db.strings.mapped_memory", <%=stringsMappedMemory%>);
+		importProperties.put("neostore.propertystore.db.arrays.mapped_memory", <%=arraysMappedMemory%>);
+		String storeDir = "";
+		org.neo4j.unsafe.batchinsert.BatchInserter inserter = null;
+		if (databaseService_<%=cid%> instanceof org.neo4j.kernel.EmbeddedGraphDatabase) {
+			org.neo4j.kernel.EmbeddedGraphDatabase db = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
+			storeDir = db.getStoreDir();
+			db.shutdown();
+			inserter = org.neo4j.unsafe.batchinsert.BatchInserters.inserter(db.getStoreDir(), importProperties);
+		} else {
+			throw new UnsupportedOperationException("Batch import is not supported with database server edition");
+		}
     	org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider indexProvider = new org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider(inserter);
     	<%
     	for (String indexName : indexNames) {
