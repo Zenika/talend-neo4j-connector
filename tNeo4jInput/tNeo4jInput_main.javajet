@@ -1,6 +1,7 @@
 <%@ jet
         imports="
             org.talend.designer.codegen.config.CodeGeneratorArgument
+            org.talend.core.model.process.ElementParameterParser 
             org.talend.core.model.process.INode
             org.talend.core.model.process.IConnection
             org.talend.core.model.metadata.IMetadataColumn
@@ -17,14 +18,21 @@
     CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
     INode node = (INode) codeGenArgument.getArgument();
     String cid = node.getUniqueName();
+    List<Map<String, String>> mapping = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__MAPPING__");
     
     // Retrieve internal schema
     List<IMetadataColumn> columns = null;
-    List<IMetadataTable> metadatas = node.getMetadataList();
+    List<IMetadataTable> metadatas = node.getMetadataList();    
+   	Map<String, IMetadataColumn> columnsMapped = new HashMap<String, IMetadataColumn>();
     if (metadatas != null && metadatas.size() > 0) {
     	IMetadataTable metadata = metadatas.get(0);
     	if (metadata != null){
     		columns = metadata.getListColumns();
+    	}
+    	for (Map<String, String> rowMapping : mapping) {
+	    	String returnParameter = rowMapping.get("RETURN_PARAMETER");
+	    	IMetadataColumn column = metadata.getColumn(rowMapping.get("SCHEMA_COLUMN"));
+	    	columnsMapped.put(returnParameter, column);
     	}
     }
     
@@ -44,96 +52,122 @@
    		outgoingConnName = out.getName();
    	}
     
-    // Build mapping map
-    Map<String, List<IMetadataColumn>> columnsByPrefixes = new HashMap<String, List<IMetadataColumn>>();
-    for (IMetadataColumn column : columns) {
-    	String columnPrefix = column.getOriginalDbColumnName().split("\\.")[0];
-    	List<IMetadataColumn> tmpColumn = columnsByPrefixes.get(columnPrefix);
-    	if (tmpColumn == null) {
-    		tmpColumn = new ArrayList<IMetadataColumn>();
-    		columnsByPrefixes.put(columnPrefix, tmpColumn);
-    	}
-    	tmpColumn.add(column);
-    }
 %>
 	java.util.Map<String, Object> row_<%=cid%> = resultIterator_<%=cid%>.next();
 <%
-	for (Map.Entry<String, List<IMetadataColumn>> columnsByPrefix : columnsByPrefixes.entrySet()) {
-		String prefix = columnsByPrefix.getKey();
-		for (IMetadataColumn column : columnsByPrefix.getValue()) {
-			String propertyKey;
-			// If there are no prefix
-			if (column.getOriginalDbColumnName().length() == prefix.length()) {
-				propertyKey = prefix;
-			} else {
-				propertyKey = column.getOriginalDbColumnName().substring(prefix.length() + 1);
-			}
-			String cType = column.getTalendType();
-			if (outgoingConnName != null && cType.equals("id_List")) {
-			%>
-				if (row_<%=cid%>.get("<%=column%>") != null && row_<%=cid%>.get("<%=column%>") instanceof java.util.Collection<?>) {				
-					java.util.Collection<?> relationships = (java.util.Collection<?>) row_<%=cid%>.get("<%=column%>");				
-					<%=outgoingConnName%>.<%=column%> = new java.util.ArrayList<Object>(relationships);
-				}
+	for (Map.Entry<String, IMetadataColumn> columnMapped : columnsMapped.entrySet()) {
+		String returnParameter = columnMapped.getKey();	
+		IMetadataColumn column = columnMapped.getValue();	
+		%>
+		Object value_<%=column%> = row_<%=cid%>.get("<%=returnParameter%>");
+		if (value_<%=column%> == null) {
 			<%
-			} else if (outgoingConnName != null) {
-			%>
+			if (returnParameter.contains(".")) {
+				String prefix = returnParameter.split("\\.")[0];
+				String parameter = returnParameter.split("\\.")[1];
+				%>
 				if (row_<%=cid%>.get("<%=prefix%>") != null && row_<%=cid%>.get("<%=prefix%>") instanceof org.neo4j.graphdb.PropertyContainer) {
-					org.neo4j.graphdb.PropertyContainer propertyContainer_<%=cid%> = (org.neo4j.graphdb.PropertyContainer) row_<%=cid%>.get("<%=prefix%>");
-					<%
-					if (cType.equals("id_String")) {
-					%>
-						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof String || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = (String) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
-						} else {
-							<%=outgoingConnName%>.<%=column%> = propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString();
-						}
-					<%
-					} else if (cType.equals("id_Long")) {
-					%>
-						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Long || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = (Long) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
-						} else if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Double) {
-							<%=outgoingConnName%>.<%=column%> = (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) ? null : Math.round((Double) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>"));
-						} else {
-							<%=outgoingConnName%>.<%=column%> = new Long(propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString());
-						}
-					<%
-					} else if (cType.equals("id_Integer")) {
-					%>
-						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") intanceof Integer || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = (Interger) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
-						} else if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Double) {
-							<%=outgoingConnName%>.<%=column%> = (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) ? null : (int) Math.round((Double) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>"));
-						} else {
-							<%=outgoingConnName%>.<%=column%> = new Integer(propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString();
-						}
-					<%
-					} else if (cType.equals("id_Float")) {
-					%>
-						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = null;
-						} else {
-							<%=outgoingConnName%>.<%=column%> = new Boolean(propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString();
-						}
-					<%
-					} else if (cType.equals("id_Boolean")) {
-					%>
-						if (propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") instanceof Boolean || propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>") == null) {
-							<%=outgoingConnName%>.<%=column%> = (Boolean) propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
-						} else {
-							<%=outgoingConnName%>.<%=column%> = new Boolean(propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>").toString());
-						}
-					<%
-					} else if (cType.equals("id_Object")) {
-					%>
-						<%=outgoingConnName%>.<%=column%> = propertyContainer_<%=cid%>.getProperty("<%=propertyKey%>");
-					<%
-					}
-					%>
-				}	
-			<%
+					org.neo4j.graphdb.PropertyContainer propertyContainer = (org.neo4j.graphdb.PropertyContainer) row_<%=cid%>.get("<%=prefix%>");
+					value_<%=column%> = propertyContainer.getProperty("<%=parameter%>");
+				}
+				<%
 			}
+			%>
+		}
+		<%
+		String cType = column.getTalendType();
+		if (outgoingConnName != null) {
+			%>
+			if (value_<%=column%> == null) {
+				<%=outgoingConnName%>.<%=column%> = null;
+			} else {
+				<%
+				if (cType.equals("id_Date")) {
+					%>
+					if (value_<%=column%> instanceof Number) {
+						<%=outgoingConnName%>.<%=column%> = new java.util.Date(((Number) value_<%=column%>).longValue());
+					<%
+					if (column.getPattern() != null && !column.getPattern().isEmpty()) {
+						%>
+						} else if (value instanceof String) {
+							java.text.SimpleDateFormat formater = new SimpleDateFormat("<%=column.getPattern()%>");
+							try {
+            					<%=outgoingConnName%>.<%=column%> = simpleDateFormat.parse(value_<%=column%>);
+        					} catch (ParseException e) {
+            					throw new RuntimeException("Unable to parse date");
+        					}
+						}
+						<%
+					} else {
+						%>
+						} else {
+							throw new RuntimeException("Unable to parse date, review your configuration");
+						}
+						<%
+					}
+				} else if (cType.equals("id_List")) {
+					%>
+					if (value_<%=column%> instanceof java.util.Collection<?>) {				
+						java.util.Collection<?> collection = (java.util.Collection<?>) value_<%=column%>;				
+						<%=outgoingConnName%>.<%=column%> = new java.util.ArrayList(collection);
+					} else {
+						throw new RuntimeException("The returned parameter is not a Collection");
+					}
+					<%
+				} else if (cType.equals("id_String")) {
+					%>
+					if (value_<%=column%> instanceof String) {
+						<%=outgoingConnName%>.<%=column%> = (String) value_<%=column%>;
+					} else {
+						<%=outgoingConnName%>.<%=column%> = value_<%=column%>.toString();
+					}
+					<%
+				} else if (cType.equals("id_Long")) {
+					%>
+					if (value_<%=column%> instanceof Long) {
+						<%=outgoingConnName%>.<%=column%> = (Long) value_<%=column%>;
+					} else if (value_<%=column%> instanceof Double) {
+						<%=outgoingConnName%>.<%=column%> = (Long) Math.round((Double) value_<%=column%>);
+					} else {
+						<%=outgoingConnName%>.<%=column%> = new Long(value_<%=column%>.toString());
+					}
+					<%
+				} else if (cType.equals("id_Integer")) {
+					%>
+					if (value_<%=column%> instanceof Integer) {
+						<%=outgoingConnName%>.<%=column%> = (Interger) value_<%=column%>;
+					} else if (value_<%=column%> instanceof Double) {
+						<%=outgoingConnName%>.<%=column%> = (int) Math.round((Double) value_<%=column%>);
+					} else {
+						<%=outgoingConnName%>.<%=column%> = new Integer(value_<%=column%>.toString());
+					}
+					<%
+				} else if (cType.equals("id_Float")) {
+					%>
+					if (value_<%=column%> instanceof Float) {
+						<%=outgoingConnName%>.<%=column%> = (Float) value_<%=column%>;
+					} else if (value_<%=column%> instanceof Double) {
+					 	<%=outgoingConnName%>.<%=column%> = ((Double) value_<%=column%>).floatValue();
+					} else {
+						<%=outgoingConnName%>.<%=column%> = new Float(value_<%=column%>.toString());
+					}
+					<%
+				} else if (cType.equals("id_Boolean")) {
+					%>
+					if (value_<%=column%> instanceof Boolean) {
+						<%=outgoingConnName%>.<%=column%> = (Boolean) value_<%=column%>;
+					} else {
+						<%=outgoingConnName%>.<%=column%> = new Boolean(value_<%=column%>.toString());
+					}
+					<%
+				} else if (cType.equals("id_Object")) {
+					%>
+					<%=outgoingConnName%>.<%=column%> = value_<%=column%>;
+					<%
+				}
+			%>
+			}
+			<%
 		}
 	}
 %>
