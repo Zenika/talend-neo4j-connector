@@ -70,7 +70,13 @@
     	public void insert() {
     		%>
 			org.neo4j.graphdb.Node startNode = startIndexNode_<%=cid%>.get("<%=startIndexKey%>", <%=incomingConnName%>.<%=startColumn%>).getSingle();
-			org.neo4j.graphdb.Node endNode = endIndexNode_<%=cid%>.get("<%=endIndexKey%>", <%=incomingConnName%>.<%=endColumn%>).getSingle();	
+			org.neo4j.graphdb.Node endNode = endIndexNode_<%=cid%>.get("<%=endIndexKey%>", <%=incomingConnName%>.<%=endColumn%>).getSingle();
+			if (startNode == null) {
+				throw new RuntimeException("Start node looked up by index with <%=startIndexKey%> as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist");
+			}
+			if (endNode == null) {
+				throw new RuntimeException("End node looked up by index with <%=startIndexKey%> as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist");
+			}
 			<%
 			if (relationshipDirection.equals("OUTGOING")) {
 				%>
