@@ -22,8 +22,8 @@
     String cid = node.getUniqueName();	
 
 	%>
-	tx.success();
-	tx.finish();
+	tx_<%=cid%>.success();
+	tx_<%=cid%>.finish();
 	<%
     
     boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
@@ -54,17 +54,17 @@
 	    }
 	    for (String indexName : indexNames) {
 	    	%>
-	    	indexInserter_<%=indexName%>.flush();
+	    	indexInserterMap_<%=cid%>.get(<%=indexName%>).flush();
 	    	<%
 	    }
 		// Must shutdown database to prevent data corruption after batch importation
 		%>
-		indexProvider.shutdown();
-		inserter.shutdown();
+		indexProvider_<%=cid%>.shutdown();
+		inserter_<%=cid%>.shutdown();
 		<%
 		if (useExistingConnection && !shutdownDb) {
 			%>
-			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir);
+			databaseService_<%=cid%> = new org.neo4j.kernel.EmbeddedGraphDatabase(storeDir_<%=cid%>);
 			globalMap.put("<%=dbconn%>", databaseService_<%=cid%>);
 			<%
 		}

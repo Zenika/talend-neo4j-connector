@@ -76,49 +76,53 @@
 		String stringsMappedMemory = ElementParameterParser.getValue(node, "__STRINGS_MAPPED_MEMORY__");
 		String arraysMappedMemory = ElementParameterParser.getValue(node, "__ARRAYS_MAPPED_MEMORY__");
     	%>
-    	java.util.Map<String, String> importProperties = new java.util.HashMap<String, String>();
-		importProperties.put("neostore.nodestore.db.mapped_memory", <%=nodeMappedMemory%>);
-		importProperties.put("neostore.relationshipstore.db.mapped_memory", <%=relationshipMappedMemory%>);
-		importProperties.put("neostore.propertystore.db.mapped_memory", <%=propertyMappedMemory%>);
-		importProperties.put("neostore.propertystore.db.strings.mapped_memory", <%=stringsMappedMemory%>);
-		importProperties.put("neostore.propertystore.db.arrays.mapped_memory", <%=arraysMappedMemory%>);
-		String storeDir = "";
-		org.neo4j.unsafe.batchinsert.BatchInserter inserter = null;
+    	java.util.Map<String, String> importProperties_<%=cid%> = new java.util.HashMap<String, String>();
+		importProperties_<%=cid%>.put("neostore.nodestore.db.mapped_memory", <%=nodeMappedMemory%>);
+		importProperties_<%=cid%>.put("neostore.relationshipstore.db.mapped_memory", <%=relationshipMappedMemory%>);
+		importProperties_<%=cid%>.put("neostore.propertystore.db.mapped_memory", <%=propertyMappedMemory%>);
+		importProperties_<%=cid%>.put("neostore.propertystore.db.strings.mapped_memory", <%=stringsMappedMemory%>);
+		importProperties_<%=cid%>.put("neostore.propertystore.db.arrays.mapped_memory", <%=arraysMappedMemory%>);
+		String storeDir_<%=cid%> = "";
+		org.neo4j.unsafe.batchinsert.BatchInserter inserter_<%=cid%> = null;
 		if (databaseService_<%=cid%> instanceof org.neo4j.kernel.EmbeddedGraphDatabase) {
-			org.neo4j.kernel.EmbeddedGraphDatabase db = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
-			storeDir = db.getStoreDir();
-			db.shutdown();
-			inserter = org.neo4j.unsafe.batchinsert.BatchInserters.inserter(db.getStoreDir(), importProperties);
+			org.neo4j.kernel.EmbeddedGraphDatabase db_<%=cid%> = (org.neo4j.kernel.EmbeddedGraphDatabase) databaseService_<%=cid%>;
+			storeDir_<%=cid%> = db_<%=cid%>.getStoreDir();
+			db_<%=cid%>.shutdown();
+			inserter_<%=cid%> = org.neo4j.unsafe.batchinsert.BatchInserters.inserter(db_<%=cid%>.getStoreDir(), importProperties_<%=cid%>);
 		} else {
 			throw new UnsupportedOperationException("Batch import is not supported with database server edition");
 		}
-    	org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider indexProvider = new org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider(inserter);
+    	org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider indexProvider_<%=cid%> = new org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider(inserter_<%=cid%>);
+		java.util.Map<String, org.neo4j.unsafe.batchinsert.BatchInserterIndex> indexInserterMap_<%=cid%> = new java.util.HashMap<String, org.neo4j.unsafe.batchinsert.BatchInserterIndex>();
     	<%
     	for (String indexName : indexNames) {
     		%>
-    		org.neo4j.unsafe.batchinsert.BatchInserterIndex indexInserter_<%=indexName%> = indexProvider.nodeIndex("<%=indexName%>", org.neo4j.helpers.collection.MapUtil.stringMap("type", "exact"));
+			indexInserterMap_<%=cid%>.put(<%=indexName%>, indexProvider_<%=cid%>.nodeIndex(<%=indexName%>, org.neo4j.helpers.collection.MapUtil.stringMap("type", "exact")));
     		<%
     	}
     } else {
+		%>
+		java.util.Map<String, org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node>> indexNodeMap_<%=cid%> = new java.util.HashMap<String,org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node>>();
+		<%
 	    for (String indexName : indexNames) {	    	
 	    	%>
-	    	org.neo4j.graphdb.index.Index<org.neo4j.graphdb.Node> indexNode_<%=indexName%> = databaseService_<%=cid%>.index().forNodes("<%=indexName%>");
+	    	indexNodeMap_<%=cid%>.put(<%=indexName%>, databaseService_<%=cid%>.index().forNodes(<%=indexName%>));
 	    	<%
 	    }
 	}
     // Auto index configuration
     if (autoIndexedColumns.size() > 0) {
     	%>
-    	org.neo4j.graphdb.index.AutoIndexer<org.neo4j.graphdb.Node> autoIndexer = databaseService_<%=cid%>.index().getNodeAutoIndexer();
-    	autoIndexer.setEnabled(true);
+    	org.neo4j.graphdb.index.AutoIndexer<org.neo4j.graphdb.Node> autoIndexer_<%=cid%> = databaseService_<%=cid%>.index().getNodeAutoIndexer();
+    	autoIndexer_<%=cid%>.setEnabled(true);
     	<%
     }
     for (String autoIndexedColumn : autoIndexedColumns) {
 		%>
-		autoIndexer.startAutoIndexingProperty("<%=autoIndexedColumn%>");
+		autoIndexer_<%=cid%>.startAutoIndexingProperty("<%=autoIndexedColumn%>");
 		<%
 	}
 %>	
-org.neo4j.graphdb.Transaction tx = databaseService_<%=cid%>.beginTx();
+org.neo4j.graphdb.Transaction tx_<%=cid%> = databaseService_<%=cid%>.beginTx();
 int nb_line_<%=cid %> = 0;
-long counter = 0;
+long counter_<%=cid%> = 0;

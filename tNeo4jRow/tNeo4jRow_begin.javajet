@@ -42,30 +42,12 @@
     
     String userNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
 %>   
-org.neo4j.cypher.ExecutionEngine engine = new org.neo4j.cypher.ExecutionEngine(databaseService_<%=cid%>);
-org.neo4j.graphdb.Transaction tx = databaseService_<%=cid%>.beginTx();
+org.neo4j.cypher.ExecutionEngine engine_<%=cid%> = new org.neo4j.cypher.ExecutionEngine(databaseService_<%=cid%>);
+org.neo4j.graphdb.Transaction tx_<%=cid%> = databaseService_<%=cid%>.beginTx();
 
-long counter = 0;
-<%
-if (userNbLine.equals("NB_NODE_INSERTED")) {
-	%>
-	long nbNodeInserted_<%=cid%> = 0;
-	<%
-} else if (userNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
-	%>
-	long nbRelationshipInserted_<%=cid%> = 0;
-	<%
-} else if (userNbLine.equals("NB_PROPERTY_UPDATED")) {
-	%>
-	long nbPropertiesUpdated_<%=cid%> = 0;
-	<%
-} else if (userNbLine.equals("NB_NODE_DELETED")) {
-	%>
-	long nbNodeDeleted_<%=cid%> = 0;
-	<%
-} else if (userNbLine.equals("NB_RELATIONSHIP_DELETED")) {
-	%>
-	long nbRelationshipDeleted = 0;
-	<%
-}
-%>
+long counter_<%=cid%> = 0;
+long nbNodeInserted_<%=cid%> = 0;
+long nbRelationshipInserted_<%=cid%> = 0;
+long nbPropertiesUpdated_<%=cid%> = 0;
+long nbNodeDeleted_<%=cid%> = 0;
+long nbRelationshipDeleted_<%=cid%> = 0;

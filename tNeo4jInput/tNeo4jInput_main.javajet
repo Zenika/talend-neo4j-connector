@@ -59,20 +59,15 @@
 		String returnParameter = columnMapped.getKey();	
 		IMetadataColumn column = columnMapped.getValue();	
 		%>
-		Object value_<%=column%> = row_<%=cid%>.get("<%=returnParameter%>");
+		expression_<%=cid%> = <%=returnParameter%>!=null?<%=returnParameter%>:"";
+		Object value_<%=column%> = row_<%=cid%>.get(expression_<%=cid%>);
 		if (value_<%=column%> == null) {
-			<%
-			if (returnParameter.contains(".")) {
-				String prefix = returnParameter.split("\\.")[0];
-				String parameter = returnParameter.split("\\.")[1];
-				%>
-				if (row_<%=cid%>.get("<%=prefix%>") != null && row_<%=cid%>.get("<%=prefix%>") instanceof org.neo4j.graphdb.PropertyContainer) {
-					org.neo4j.graphdb.PropertyContainer propertyContainer = (org.neo4j.graphdb.PropertyContainer) row_<%=cid%>.get("<%=prefix%>");
-					value_<%=column%> = propertyContainer.getProperty("<%=parameter%>");
+			if(expression_<%=cid%>.contains(".")) {
+				if (row_<%=cid%>.get(expression_<%=cid%>.split("\\.")[0]) != null && row_<%=cid%>.get(expression_<%=cid%>.split("\\.")[0]) instanceof org.neo4j.graphdb.PropertyContainer) {
+					org.neo4j.graphdb.PropertyContainer propertyContainer = (org.neo4j.graphdb.PropertyContainer) row_<%=cid%>.get(expression_<%=cid%>.split("\\.")[0]);
+					value_<%=column%> = propertyContainer.getProperty(expression_<%=cid%>.split("\\.")[1]);
 				}
-				<%
 			}
-			%>
 		}
 		<%
 		String cType = column.getTalendType();
@@ -135,7 +130,7 @@
 				} else if (cType.equals("id_Integer")) {
 					%>
 					if (value_<%=column%> instanceof Integer) {
-						<%=outgoingConnName%>.<%=column%> = (Interger) value_<%=column%>;
+						<%=outgoingConnName%>.<%=column%> = (Integer) value_<%=column%>;
 					} else if (value_<%=column%> instanceof Double) {
 						<%=outgoingConnName%>.<%=column%> = (int) Math.round((Double) value_<%=column%>);
 					} else {
@@ -171,4 +166,4 @@
 		}
 	}
 %>
-++nb_line_<%=cid%>;
+nb_line_<%=cid%>++;

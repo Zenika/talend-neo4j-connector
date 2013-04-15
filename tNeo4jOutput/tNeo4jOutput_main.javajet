@@ -71,7 +71,7 @@
 		
 		public void generateNodeInsert() {
 			%>
-			org.neo4j.graphdb.Node node = databaseService_<%=cid%>.createNode();
+			org.neo4j.graphdb.Node node_<%=cid%> = databaseService_<%=cid%>.createNode();
 			<%
 			generateNode();
 		}
@@ -81,9 +81,9 @@
 			String indexKey = ElementParameterParser.getValue(node, "__INDEX_KEY__");
 			String indexColumnValue = ElementParameterParser.getValue(node, "__INDEX_VALUE__");
 			%>
-			org.neo4j.graphdb.Node node = indexNode_<%=indexName%>.get("<%=indexKey%>", <%=incomingConnName%>.<%=indexColumnValue%>).getSingle();
-			if (node == null) {
-				node = databaseService_<%=cid%>.createNode();
+			org.neo4j.graphdb.Node node_<%=cid%> = indexNodeMap_<%=cid%>.get(<%=indexName%>).get(<%=indexKey%>, <%=incomingConnName%>.<%=indexColumnValue%>).getSingle();
+			if (node_<%=cid%> == null) {
+				node_<%=cid%> = databaseService_<%=cid%>.createNode();
 			}
 			<%
 			generateNode();
@@ -94,8 +94,8 @@
 			String indexKey = ElementParameterParser.getValue(node, "__INDEX_KEY__");
 			String indexColumnValue = ElementParameterParser.getValue(node, "__INDEX_VALUE__");
 			%>
-			org.neo4j.graphdb.Node node = indexNode_<%=indexName%>.get("<%=indexKey%>", <%=incomingConnName%>.<%=indexColumnValue%>).getSingle();
-			if (node == null) {
+			org.neo4j.graphdb.Node node_<%=cid%> = indexNodeMap_<%=cid%>.get(<%=indexName%>).get(<%=indexKey%>, <%=incomingConnName%>.<%=indexColumnValue%>).getSingle();
+			if (node_<%=cid%> == null) {
 				throw new RuntimeException("Node not found");
 			}
 			<%
@@ -107,17 +107,17 @@
 			String indexKey = ElementParameterParser.getValue(node, "__INDEX_KEY__");
 			String indexColumnValue = ElementParameterParser.getValue(node, "__INDEX_VALUE__");
 			%>
-			org.neo4j.graphdb.Node node = indexNode_<%=indexName%>.get("<%=indexKey%>", <%=incomingConnName%>.<%=indexColumnValue%>).getSingle();
-			if (node != null) {
-				if (indexNode_<%=indexName%>.isWriteable()) {
-					indexNode_<%=indexName%>.remove(node);
+			org.neo4j.graphdb.Node node_<%=cid%> = indexNodeMap_<%=cid%>.get(<%=indexName%>).get(<%=indexKey%>, <%=incomingConnName%>.<%=indexColumnValue%>).getSingle();
+			if (node_<%=cid%> != null) {
+				if (indexNodeMap_<%=cid%>.get(<%=indexName%>).isWriteable()) {
+					indexNodeMap_<%=cid%>.get(<%=indexName%>).remove(node_<%=cid%>);
 				}
-				if (node.hasRelationship()) {
-					for (org.neo4j.graphdb.Relationship relationship : node.getRelationships(org.neo4j.graphdb.Direction.BOTH)) {
-						relationship.delete();
+				if (node_<%=cid%>.hasRelationship()) {
+					for (org.neo4j.graphdb.Relationship relationship_<%=cid%> : node_<%=cid%>.getRelationships(org.neo4j.graphdb.Direction.BOTH)) {
+						relationship_<%=cid%>.delete();
 					}
 				}
-				node.delete();
+				node_<%=cid%>.delete();
 			}
 			<%
 		}
@@ -142,20 +142,20 @@
 			if (column.getTalendType().equals("id_Date")) {
 	    		%>
 	    		if (<%=incomingConnName%>.<%=column%> != null) {
-	    			java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
-	    			node.setProperty("<%=column%>", date.getTime());
+	    			java.util.Date date_<%=cid%> = (java.util.Date) <%=incomingConnName%>.<%=column%>;
+	    			node_<%=cid%>.setProperty("<%=column%>", date_<%=cid%>.getTime());
 	    		}
 	    		<%
     		} else {
 		    	if (column.isNullable()) {
 			    	%>
 		    		if (<%=incomingConnName%>.<%=column%> != null) {
-		    			node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    			node_<%=cid%>.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
 		    		}
 			    	<%
 		    	} else {
 			    	%>
-		    		node.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    		node_<%=cid%>.setProperty("<%=column%>", <%=incomingConnName%>.<%=column%>);
 	    			<%
 		    	}
 		    }
@@ -166,54 +166,54 @@
 			boolean fromValueColumn = index.getValue() == null || index.getValue().isEmpty();
 			if (fromValueColumn) {
 				%>		    				
-				indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);		    			
+				indexNodeMap_<%=cid%>.get(<%=index.getName()%>).add(node_<%=cid%>, <%=index.getKey()%>, <%=incomingConnName%>.<%=column%>);		    			
 				<%
 			} else if (fromValueColumn && index.isUnique()){
 				%>
-				indexNode_<%=index.getName()%>.putIfAbsent(node, "<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);
+				indexNodeMap_<%=cid%>.get(<%=index.getName()%>).putIfAbsent(node_<%=cid%>, <%=index.getKey()%>, <%=incomingConnName%>.<%=column%>);
 				<%
 			} else if (index.isUnique()) {
 				%>
-				indexNode_<%=index.getName()%>.putIfAbsent(node, "<%=index.getKey()%>", "<%=index.getValue()%>");
+				indexNodeMap_<%=cid%>.get(<%=index.getName()%>).putIfAbsent(node_<%=cid%>, <%=index.getKey()%>, <%=index.getValue()%>);
 				<%
 			} else {
 				%>
-				indexNode_<%=index.getName()%>.add(node, "<%=index.getKey()%>", "<%=index.getValue()%>");				
+				indexNodeMap_<%=cid%>.get(<%=index.getName()%>).add(node_<%=cid%>, <%=index.getKey()%>, <%=index.getValue()%>);				
 				<%
 			}
 		}
 		
 		private void generateRelationshipCreation(Relationship relationship, IMetadataColumn column) {
 			%>
-			org.neo4j.graphdb.Node endNode_<%=relationship.getIndex().getName()%> = null;
+			java.util.Map<String, org.neo4j.graphdb.Node> endNode_<%=cid%> = new java.util.HashMap<String,org.neo4j.graphdb.Node>();
 			<%
 			if (relationship.getIndex().getValue() != null && !relationship.getIndex().getValue().isEmpty()) {
 			%>
-				endNode_<%=relationship.getIndex().getName()%> = indexNode_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", "<%=relationship.getIndex().getValue()%>").getSingle();
+				endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, indexNodeMap_<%=cid%>.get(<%=relationship.getIndex().getName()%>).get(<%=relationship.getIndex().getKey()%>, <%=relationship.getIndex().getValue()%>).getSingle());
 			<%
 			} else if (column.isNullable()) {
 			%>
 				if (<%=incomingConnName%>.<%=column%> != null) {
-					endNode_<%=relationship.getIndex().getName()%> = indexNode_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+					endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, indexNodeMap_<%=cid%>.get(<%=relationship.getIndex().getName()%>).get(<%=relationship.getIndex().getKey()%>, <%=incomingConnName%>.<%=column%>).getSingle());
 				}
 			<%
 			} else {
 				%>
-				endNode_<%=relationship.getIndex().getName()%> = indexNode_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+				endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, indexNodeMap_<%=cid%>.get(<%=relationship.getIndex().getName()%>).get(<%=relationship.getIndex().getKey()%>, <%=incomingConnName%>.<%=column%>).getSingle());
 				<%
 			}
 			%>
-			if (endNode_<%=relationship.getIndex().getName()%> != null) {
+			if (endNode_<%=cid%>.get(<%=relationship.getIndex().getName()%>) != null) {
 				<%
 				switch (relationship.getDirection()) {
 					case OUTGOING :
 						%>		 	
-	    				node.createRelationshipTo(endNode_<%=relationship.getIndex().getName()%>, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
+	    				node_<%=cid%>.createRelationshipTo(endNode_<%=cid%>.get(<%=relationship.getIndex().getName()%>), org.neo4j.graphdb.DynamicRelationshipType.withName(<%=relationship.getType()%>));
 						<%
 						break;
-					case INCOMMING :
+					case INCOMING :
 						%>
-						endNode_<%=relationship.getIndex().getName()%>.createRelationshipTo(node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"));
+						endNode_<%=cid%>.get(<%=relationship.getIndex().getName()%>).createRelationshipTo(node_<%=cid%>, org.neo4j.graphdb.DynamicRelationshipType.withName(<%=relationship.getType()%>));
 						<%
 						break;
 				}
@@ -234,7 +234,7 @@
 		
 		public void generateNodeBatchInsert() {
 			%>
-			java.util.Map<String, Object> properties = new java.util.HashMap<String, Object>();
+			java.util.Map<String, Object> properties_<%=cid%> = new java.util.HashMap<String, Object>();
 			<%
 			for (IMetadataColumn column : columnList) {		
 	    		putBatchPropertyInsertInMap(column);
@@ -259,20 +259,20 @@
 			if (column.getTalendType().equals("id_Date")) {
 	    		%>
 	    		if (<%=incomingConnName%>.<%=column%> != null) {
-	    			java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
-	    			properties.put("<%=column%>", date.getTime());
+	    			java.util.Date date_<%=cid%> = (java.util.Date) <%=incomingConnName%>.<%=column%>;
+	    			properties_<%=cid%>.put("<%=column%>", date_<%=cid%>.getTime());
 	    		}
 	    		<%
     		} else {
 		    	if (column.isNullable()) {
 			    	%>
 		    		if (<%=incomingConnName%>.<%=column%> != null) {
-		    			properties.put("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    			properties_<%=cid%>.put("<%=column%>", <%=incomingConnName%>.<%=column%>);
 		    		}
 			    	<%
 		    	} else {
 			    	%>
-		    		properties.put("<%=column%>", <%=incomingConnName%>.<%=column%>);
+		    		properties_<%=cid%>.put("<%=column%>", <%=incomingConnName%>.<%=column%>);
 		    		<%
 		    	}
 		    }
@@ -280,64 +280,69 @@
 		
 		private void generateNode() {
 			%>
-			long node = inserter.createNode(properties);			
+			long node_<%=cid%> = inserter_<%=cid%>.createNode(properties_<%=cid%>);			
 			<%
 		}
 		
 		private void generateIndexCreation(Index index, IMetadataColumn column) {
 			boolean fromValueColumn = index.getValue() == null || index.getValue().isEmpty();
 			%>
-			java.util.Map<String, Object> index_<%=index.getName()%>_properties = new java.util.HashMap<String, Object>();
+			java.util.Map<String, Object> indexProperties_<%=cid%> = new java.util.HashMap<String, Object>();
+			java.util.Map<String, java.util.Map<String, Object>> indexPropertiesMap_<%=cid%> = new java.util.HashMap<String, java.util.Map<String, Object>>();
 			<%
 			if (fromValueColumn) {
 				%>	    
-				index_<%=index.getName()%>_properties.put("<%=index.getKey()%>", <%=incomingConnName%>.<%=column%>);
+				indexProperties_<%=cid%>.put(<%=index.getKey()%>, <%=incomingConnName%>.<%=column%>);
 				<%
 			} else {
 				%>		
-				index_<%=index.getName()%>_properties.put("<%=index.getKey()%>", "<%=index.getValue()%>");
+				indexProperties_<%=cid%>.put(<%=index.getKey()%>, <%=index.getValue()%>);
 				<%
-			} 
+			}
+			%>
+				indexPropertiesMap_<%=cid%>.put(<%=index.getName()%>, indexProperties_<%=cid%>);
+			<%
 			
 			if (index.isUnique()) {
 				%>
-				indexInserter_<%=index.getName()%>.updateOrAdd(node, index_<%=index.getName()%>_properties);
+				indexInserterMap_<%=cid%>.get(<%=index.getName()%>).updateOrAdd(node_<%=cid%>, indexPropertiesMap_<%=cid%>.get(<%=index.getName()%>));
 				<%
 			} else {
 				%>
-				indexInserter_<%=index.getName()%>.add(node, index_<%=index.getName()%>_properties);			
+				indexInserterMap_<%=cid%>.get(<%=index.getName()%>).add(node_<%=cid%>, indexPropertiesMap_<%=cid%>.get(<%=index.getName()%>));			
 				<%
 			}
 		}
 		
 		private void generateRelationshipCreation(Relationship relationship, IMetadataColumn column) {
 			%>
-			long endNode_<%=relationship.getIndex().getName()%> = 0;
+			java.util.Map<String, Long> endNode_<%=cid%> = new java.util.HashMap<String,Long>();
+			endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, 0L);
 			<%
 			if (relationship.getIndex().getValue() != null && !relationship.getIndex().getValue().isEmpty()) {
 			%>
-				endNode_<%=relationship.getIndex().getName()%> = indexInserter_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", "<%=relationship.getIndex().getValue()%>").getSingle();
+				endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, indexInserterMap_<%=cid%>.get(<%=relationship.getIndex().getName()%>).get(<%=relationship.getIndex().getKey()%>, <%=relationship.getIndex().getValue()%>).getSingle());
 			<%
 			} else if (column.isNullable()) {
 			%>
 				if (<%=incomingConnName%>.<%=column%> != null) {
-					endNode_<%=relationship.getIndex().getName()%> = indexInserter_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+					endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, indexInserterMap_<%=cid%>.get(<%=relationship.getIndex().getName()%>).get(<%=relationship.getIndex().getKey()%>, <%=incomingConnName%>.<%=column%>).getSingle());
 				}
 			<%
 			} else {
 				%>
-				endNode_<%=relationship.getIndex().getName()%> = indexInserter_<%=relationship.getIndex().getName()%>.get("<%=relationship.getIndex().getKey()%>", <%=incomingConnName%>.<%=column%>).getSingle();
+				endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, indexInserterMap_<%=cid%>.get(<%=relationship.getIndex().getName()%>).get(<%=relationship.getIndex().getKey()%>, <%=incomingConnName%>.<%=column%>).getSingle());
 				<%
 			}
 			switch (relationship.getDirection()) {
 				case OUTGOING :
 					%>		 	
-    				inserter.createRelationship(node, endNode_<%=relationship.getIndex().getName()%>, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"), null);
+    				inserter_<%=cid%>.createRelationship(node_<%=cid%>, endNode_<%=cid%>.get(<%=relationship.getIndex().getName()%>), org.neo4j.graphdb.DynamicRelationshipType.withName(<%=relationship.getType()%>), null);
 					<%
 					break;
-				case INCOMMING :
+				case INCOMING :
 					%>
-					inserter.createRelationship(endNode_<%=relationship.getIndex().getName()%>, node, org.neo4j.graphdb.DynamicRelationshipType.withName("<%=relationship.getType()%>"), null);
+					inserter_<%=cid%>.createRelationship(endNode_<%=cid%>.get(<%=relationship.getIndex().getName()%>), node_<%=cid%>, org.neo4j.graphdb.DynamicRelationshipType.withName(<%=relationship.getType()%>), null);
 					<%
 					break;
 			}
@@ -360,10 +365,13 @@
 		}
 	}
 %>
-if (counter % Long.parseLong(<%=commitEvery%>) == 0) {
-	tx.success();
-	tx.finish();
-	tx = databaseService_<%=cid%>.beginTx();
+
+counter_<%=cid%>++;
+
+if (counter_<%=cid%> % Long.parseLong(<%=commitEvery%>) == 0) {
+	tx_<%=cid%>.success();
+	tx_<%=cid%>.finish();
+	tx_<%=cid%> = databaseService_<%=cid%>.beginTx();
 }
-counter++;
-++nb_line_<%=cid %>;
+
+nb_line_<%=cid %>++;

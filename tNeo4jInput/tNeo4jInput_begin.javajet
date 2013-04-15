@@ -49,4 +49,5 @@ org.neo4j.cypher.ExecutionResult result = engine.execute(<%=query%>);
 java.util.Iterator<java.util.Map<String, Object>> resultIterator_<%=cid%> = result.javaIterator();
 
 int nb_line_<%=cid%> = 0;
+String expression_<%=cid%> = "";
 while (resultIterator_<%=cid%>.hasNext()) {

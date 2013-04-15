@@ -6,6 +6,7 @@
   </HEADER>  
   <FAMILIES> 
     <FAMILY>Databases/Neo4j</FAMILY> 
+	<FAMILY>Big Data/Neo4j</FAMILY>
   </FAMILIES>  
   <DOCUMENTATION> 
     <URL/> 
@@ -39,6 +40,5 @@
     </IMPORTS> 
   </CODEGENERATION>  
   <RETURNS> 
-    <RETURN AVAILABILITY="AFTER" NAME="NB_LINE" TYPE="id_Integer"/> 
   </RETURNS> 
 </COMPONENT>

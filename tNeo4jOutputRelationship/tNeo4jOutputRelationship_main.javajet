@@ -69,22 +69,22 @@
     
     	public void insert() {
     		%>
-			org.neo4j.graphdb.Node startNode = startIndexNode_<%=cid%>.get("<%=startIndexKey%>", <%=incomingConnName%>.<%=startColumn%>).getSingle();
-			org.neo4j.graphdb.Node endNode = endIndexNode_<%=cid%>.get("<%=endIndexKey%>", <%=incomingConnName%>.<%=endColumn%>).getSingle();
-			if (startNode == null) {
-				throw new RuntimeException("Start node looked up by index with <%=startIndexKey%> as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist");
+			org.neo4j.graphdb.Node startNode_<%=cid%> = startIndexNode_<%=cid%>.get(<%=startIndexKey%>, <%=incomingConnName%>.<%=startColumn%>).getSingle();
+			org.neo4j.graphdb.Node endNode_<%=cid%> = endIndexNode_<%=cid%>.get(<%=endIndexKey%>, <%=incomingConnName%>.<%=endColumn%>).getSingle();
+			if (startNode_<%=cid%> == null) {
+				throw new RuntimeException("Start node looked up by index with " + <%=startIndexKey%> + " as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist");
 			}
-			if (endNode == null) {
-				throw new RuntimeException("End node looked up by index with <%=startIndexKey%> as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist");
+			if (endNode_<%=cid%> == null) {
+				throw new RuntimeException("End node looked up by index with " + <%=startIndexKey%> + " as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist");
 			}
 			<%
 			if (relationshipDirection.equals("OUTGOING")) {
 				%>
-				org.neo4j.graphdb.Relationship relationship = startNode.createRelationshipTo(endNode, relationshipType_<%=cid%>);
+				org.neo4j.graphdb.Relationship relationship_<%=cid%> = startNode_<%=cid%>.createRelationshipTo(endNode_<%=cid%>, relationshipType_<%=cid%>);
 				<%
 			} else {
 				%>
-				org.neo4j.graphdb.Relationship relationship = endNode.createRelationshipTo(startNode, relationshipType_<%=cid%>);
+				org.neo4j.graphdb.Relationship relationship_<%=cid%> = endNode_<%=cid%>.createRelationshipTo(startNode_<%=cid%>, relationshipType_<%=cid%>);
 				<%
 			}
 			for (Map<String, String> row : mappingTable) {
@@ -98,11 +98,11 @@
 						<%
 						if (propertyName != null && !propertyName.isEmpty()) {
 							%>
-							relationship.setProperty("<%=propertyName%>", value_<%=column%>); 
+							relationship_<%=cid%>.setProperty(<%=propertyName%>, value_<%=column%>); 
 							<%
 						} else {
 							%>
-							relationship.setProperty("<%=column%>", value_<%=column%>);
+							relationship_<%=cid%>.setProperty("<%=column%>", value_<%=column%>);
 							<%
 						}
 						%>
@@ -117,8 +117,8 @@
 				%>
 				Object value_<%=column%> = null;
 				if (<%=incomingConnName%>.<%=column%> != null) {
-					java.util.Date date = (java.util.Date) <%=incomingConnName%>.<%=column%>;
-					value_<%=column%> = date.getTime();
+					java.util.Date date_<%=cid%> = (java.util.Date) <%=incomingConnName%>.<%=column%>;
+					value_<%=column%> = date_<%=cid%>.getTime();
 				}
 				<%
 			} else {
@@ -130,9 +130,9 @@
     
     	public void batchInsert() {
     		%>
-    		long startNode = startIndexInserter.get("<%=startIndexKey%>", <%=incomingConnName%>.<%=startColumn%>).getSingle();
-    		long endNode = endIndexInserter.get("<%=endIndexKey%>", <%=incomingConnName%>.<%=endColumn%>).getSingle();
-    		java.util.Map<String, Object> properties = new java.util.HashMap<String, Object>();
+    		long startNode_<%=cid%> = startIndexInserter_<%=cid%>.get(<%=startIndexKey%>, <%=incomingConnName%>.<%=startColumn%>).getSingle();
+    		long endNode_<%=cid%> = endIndexInserter_<%=cid%>.get(<%=endIndexKey%>, <%=incomingConnName%>.<%=endColumn%>).getSingle();
+    		java.util.Map<String, Object> properties_<%=cid%> = new java.util.HashMap<String, Object>();
     		<%
     		for (Map<String, String> row : mappingTable) {
 				String columnName = row.get("INPUT_COLUMN");
@@ -145,11 +145,11 @@
 						<%
 						if (propertyName != null && !propertyName.isEmpty()) {
 							%>
-							properties.put("<%=propertyName%>", value_<%=column%>); 
+							properties_<%=cid%>.put(<%=propertyName%>, value_<%=column%>); 
 							<%
 						} else {
 							%>
-							properties.put("<%=column%>", value_<%=column%>);
+							properties_<%=cid%>.put("<%=column%>", value_<%=column%>);
 							<%
 						}
 						%>
@@ -159,11 +159,11 @@
 			}
 			if (relationshipDirection.equals("OUTGOING")) {
 				%>
-				inserter.createRelationship(startNode, endNode, relationshipType_<%=cid%>, properties);
+				inserter_<%=cid%>.createRelationship(startNode_<%=cid%>, endNode_<%=cid%>, relationshipType_<%=cid%>, properties_<%=cid%>);
 				<%
 			} else {
 				%>
-				inserter.createRelationship(endNode, startNode, relationshipType_<%=cid%>, properties);
+				inserter_<%=cid%>.createRelationship(endNode_<%=cid%>, startNode_<%=cid%>, relationshipType_<%=cid%>, properties_<%=cid%>);
 				<%
 			}
     	}
@@ -199,10 +199,13 @@
 	    	<%
     }
     %>
-	if (counter % Long.parseLong(<%=commitEvery%>) == 0) {
-		tx.success();
-		tx.finish();
-		tx = databaseService_<%=cid%>.beginTx();
+	
+	counter_<%=cid%>++;
+	
+	if (counter_<%=cid%> % Long.parseLong(<%=commitEvery%>) == 0) {
+		tx_<%=cid%>.success();
+		tx_<%=cid%>.finish();
+		tx_<%=cid%> = databaseService_<%=cid%>.beginTx();
 	}
-	counter++;
-	++nb_line_<%=cid %>;
+
+	nb_line_<%=cid %>++;

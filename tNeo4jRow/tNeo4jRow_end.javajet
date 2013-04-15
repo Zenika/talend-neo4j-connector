@@ -19,31 +19,12 @@
     String cid = node.getUniqueName();	
     
     %>
-	tx.success();
-	tx.finish();
-	<%
-    
-    String userNbLine = ElementParameterParser.getValue(node, "__USE_NB_LINE__");
-    
-    if (userNbLine.equals("NB_NODE_INSERTED")) {
-		%>
-		globalMap.put("<%=cid %>_NB_NODE_INSERTED", nbNodeInserted_<%=cid%>);
-		<%
-	} else if (userNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
-		%>
-		globalMap.put("<%=cid %>_NB_RELATIONSHIP_INSERTED", nbRelationshipInserted_<%=cid%>);
-		<%
-	} else if (userNbLine.equals("NB_PROPERTY_UPDATED")) {
-		%>
-		globalMap.put("<%=cid %>_NB_PROPERTY_UPDATED", nbPropertiesUpdated_<%=cid%>);
-		<%
-	} else if (userNbLine.equals("NB_NODE_DELETED")) {
-		%>
-		globalMap.put("<%=cid %>_NB_NODE_DELETED", nbNodeDeleted_<%=cid%>);
-		<%
-	} else if (userNbLine.equals("NB_RELATIONSHIP_DELETED")) {
-		%>
-		globalMap.put("<%=cid %>_NB_RELATIONSHIP_DELETED", nbRelationshipDeleted_<%=cid%>);
-		<%
-	}
-%>
+	tx_<%=cid%>.success();
+	tx_<%=cid%>.finish();
+	
+	globalMap.put("<%=cid %>_NB_NODE_INSERTED", nbNodeInserted_<%=cid%>);
+	globalMap.put("<%=cid %>_NB_RELATIONSHIP_INSERTED", nbRelationshipInserted_<%=cid%>);
+	globalMap.put("<%=cid %>_NB_PROPERTY_UPDATED", nbPropertiesUpdated_<%=cid%>);
+	globalMap.put("<%=cid %>_NB_NODE_DELETED", nbNodeDeleted_<%=cid%>);
+	globalMap.put("<%=cid %>_NB_RELATIONSHIP_DELETED", nbRelationshipDeleted_<%=cid%>);
+	

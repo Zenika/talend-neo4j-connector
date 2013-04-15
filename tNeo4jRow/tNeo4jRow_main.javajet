@@ -84,21 +84,22 @@
 		}
 	}
     %>
-    java.util.Map<String, Object> parameters = new java.util.HashMap<String, Object>();
+    java.util.Map<String, Object> parameters_<%=cid%> = new java.util.HashMap<String, Object>();
     <%
     for (Map<String, String> parameter : listParameters) {
     	%>
-    	parameters.put(<%=parameter.get("PARAMETER_NAME")%>, <%=incomingConnName%>.<%=parameter.get("PARAMETER_VALUE")%>);
+    	parameters_<%=cid%>.put(<%=parameter.get("PARAMETER_NAME")%>, <%=incomingConnName%>.<%=parameter.get("PARAMETER_VALUE")%>);
     	<%
     }
     %>
+	org.neo4j.cypher.ExecutionResult result_<%=cid%> = null;
     try {
-    	org.neo4j.cypher.ExecutionResult result = engine.execute(<%=query%>, parameters);
-    } catch (Exception e) {
+    	result_<%=cid%> = engine_<%=cid%>.execute(<%=query%>, parameters_<%=cid%>);
+    } catch (Exception e_<%=cid%>) {
     	<%
     	if (dieOnError) {
     		%>
-    		throw(e);
+    		throw(e_<%=cid%>);
     		<%
     	} else {
     		if (rejectConnName != null && rejectColumnList != null && rejectColumnList.size() > 0) {
@@ -115,43 +116,29 @@
     				}
     			}
     			%>
-    			<%=rejectConnName%>.errorMessage = e.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName()%>;
+    			<%=rejectConnName%>.errorMessage = e_<%=cid%>.getMessage() + " - Line: " + tos_count_<%=node.getUniqueName()%>;
     			<%
     		} else {
     			%>
-    			System.err.print(e.getMessage());
+    			System.err.print(e_<%=cid%>.getMessage());
     			<%
     		}
     	}
     	%>
     }
-    <%
-    
-    if (userNbLine.equals("NB_NODE_INSERTED")) {
-		%>
-		nbNodeInserted_<%=cid%> += result.nodesCreated();
-		<%
-	} else if (userNbLine.equals("NB_RELATIONSHIP_INSERTED")) {
-		%>
-		nbRelationshipInserted_<%=cid%> += result.relationshipsCreated();
-		<%
-	} else if (userNbLine.equals("NB_PROPERTY_UPDATED")) {
-		%>
-		nbPropertiesUpdated_<%=cid%> += result.propertiesSet();
-		<%
-	} else if (userNbLine.equals("NB_NODE_DELETED")) {
-		%>
-		nbNodeDeleted_<%=cid%> += result.deletedNodes();
-		<%
-	} else if (userNbLine.equals("NB_RELATIONSHIP_DELETED")) {
-		%>
-		nbRelationshipDeleted_<%=cid%> += result.deletedRelationships();
-		<%
+
+	if(result_<%=cid%>!=null) {
+		nbNodeInserted_<%=cid%> += result_<%=cid%>.queryStatistics().nodesCreated();
+		nbRelationshipInserted_<%=cid%> += result_<%=cid%>.queryStatistics().relationshipsCreated();
+		nbPropertiesUpdated_<%=cid%> += result_<%=cid%>.queryStatistics().propertiesSet();
+		nbNodeDeleted_<%=cid%> += result_<%=cid%>.queryStatistics().deletedNodes();
+		nbRelationshipDeleted_<%=cid%> += result_<%=cid%>.queryStatistics().deletedRelationships();
 	}
-%>
-if (counter % Long.parseLong(<%=commitEvery%>) == 0) {
-	tx.success();
-	tx.finish();
-	tx = databaseService_<%=cid%>.beginTx();
-}
-counter++;
+		
+	counter_<%=cid%>++;
+
+	if (counter_<%=cid%> % Long.parseLong(<%=commitEvery%>) == 0) {
+		tx_<%=cid%>.success();
+		tx_<%=cid%>.finish();
+		tx_<%=cid%> = databaseService_<%=cid%>.beginTx();
+	}
