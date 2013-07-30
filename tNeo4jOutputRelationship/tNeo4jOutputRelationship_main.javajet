@@ -54,6 +54,8 @@
     
     final List<Map<String, String>> mappingTable = (List<Map<String,String>>) ElementParameterParser.getObjectValue(node, "__MAPPING__");
     
+    final boolean failOnNodeNull = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__FAIL_ON_NULL_NODE__"));
+    
     final IMetadataColumn startColumn = metadata.getColumn(startIndexValueColumn);
     final IMetadataColumn endColumn = metadata.getColumn(endIndexValueColumn);
     
@@ -71,45 +73,47 @@
     		%>
 			org.neo4j.graphdb.Node startNode_<%=cid%> = startIndexNode_<%=cid%>.get(<%=startIndexKey%>, <%=incomingConnName%>.<%=startColumn%>).getSingle();
 			org.neo4j.graphdb.Node endNode_<%=cid%> = endIndexNode_<%=cid%>.get(<%=endIndexKey%>, <%=incomingConnName%>.<%=endColumn%>).getSingle();
-			if (startNode_<%=cid%> == null) {
-				throw new RuntimeException("Start node looked up by index with " + <%=startIndexKey%> + " as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist");
-			}
-			if (endNode_<%=cid%> == null) {
-				throw new RuntimeException("End node looked up by index with " + <%=startIndexKey%> + " as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist");
-			}
+			boolean skipRelationship = false;
 			<%
-			if (relationshipDirection.equals("OUTGOING")) {
-				%>
-				org.neo4j.graphdb.Relationship relationship_<%=cid%> = startNode_<%=cid%>.createRelationshipTo(endNode_<%=cid%>, relationshipType_<%=cid%>);
+			checkNodes();
+			%>
+			if (!skipRelationship) {
 				<%
-			} else {
-				%>
-				org.neo4j.graphdb.Relationship relationship_<%=cid%> = endNode_<%=cid%>.createRelationshipTo(startNode_<%=cid%>, relationshipType_<%=cid%>);
-				<%
-			}
-			for (Map<String, String> row : mappingTable) {
-				String columnName = row.get("INPUT_COLUMN");
-				String propertyName = row.get("PROPERTY_NAME");
-				if (columnName != null && !columnName.isEmpty()) {
-					IMetadataColumn column = metadata.getColumn(columnName);
-					computeValue(column);
+				if (relationshipDirection.equals("OUTGOING")) {
 					%>
-					if (value_<%=column%> != null) {
-						<%
-						if (propertyName != null && !propertyName.isEmpty()) {
-							%>
-							relationship_<%=cid%>.setProperty(<%=propertyName%>, value_<%=column%>); 
-							<%
-						} else {
-							%>
-							relationship_<%=cid%>.setProperty("<%=column%>", value_<%=column%>);
-							<%
-						}
-						%>
-					}
+					org.neo4j.graphdb.Relationship relationship_<%=cid%> = startNode_<%=cid%>.createRelationshipTo(endNode_<%=cid%>, relationshipType_<%=cid%>);
+					<%
+				} else {
+					%>
+					org.neo4j.graphdb.Relationship relationship_<%=cid%> = endNode_<%=cid%>.createRelationshipTo(startNode_<%=cid%>, relationshipType_<%=cid%>);
 					<%
 				}
+				for (Map<String, String> row : mappingTable) {
+					String columnName = row.get("INPUT_COLUMN");
+					String propertyName = row.get("PROPERTY_NAME");
+					if (columnName != null && !columnName.isEmpty()) {
+						IMetadataColumn column = metadata.getColumn(columnName);
+						computeValue(column);
+						%>
+						if (value_<%=column%> != null) {
+							<%
+							if (propertyName != null && !propertyName.isEmpty()) {
+								%>
+								relationship_<%=cid%>.setProperty(<%=propertyName%>, value_<%=column%>); 
+								<%
+							} else {
+								%>
+								relationship_<%=cid%>.setProperty("<%=column%>", value_<%=column%>);
+								<%
+							}
+							%>
+						}
+						<%
+					}
+				}
+			%>
 			}
+			<%
     	}
     
     	public void computeValue(IMetadataColumn column) {
@@ -166,6 +170,41 @@
 				inserter_<%=cid%>.createRelationship(endNode_<%=cid%>, startNode_<%=cid%>, relationshipType_<%=cid%>, properties_<%=cid%>);
 				<%
 			}
+    	}
+    	
+    	public void checkNodes() {
+    		%>
+    		if (startNode_<%=cid%> == null) {
+				String errorMessage = "Start node looked up by index with " + <%=startIndexKey%> + " as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist";
+				<%
+				if (failOnNodeNull) {
+					%>
+					throw new NullPointerException(errorMessage);
+					<%
+				} else {
+					%>
+					System.err.println(errorMessage);
+					skipRelationship = true;
+					<%
+				}
+				%>
+			}
+			if (endNode_<%=cid%> == null) {
+				String errorMessage = "End node looked up by index with " + <%=startIndexKey%> + " as key and " + <%=incomingConnName%>.<%=startColumn%> + " as value doesn't exist";
+				<%
+				if (failOnNodeNull) {
+					%>
+					throw new NullPointerException(errorMessage);
+					<%
+				} else {
+					%>
+					System.err.println(errorMessage);
+					skipRelationship = true;
+					<%
+				}
+				%>
+			}
+			<%
     	}
     }
     
