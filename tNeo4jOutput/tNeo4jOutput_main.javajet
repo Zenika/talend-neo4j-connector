@@ -23,7 +23,7 @@
     CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
     final INode node = (INode)codeGenArgument.getArgument();
     final String cid = node.getUniqueName();
-    String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
+    final String dataAction = ElementParameterParser.getValue(node, "__DATA_ACTION__");
     String commitEvery = ElementParameterParser.getValue(node, "__COMMIT_EVERY__");
     boolean batchImport = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__BATCH_IMPORT__"));
     
@@ -123,6 +123,9 @@
 		}
 
 		private void generateNode() {
+%>					
+			java.util.Map<String, org.neo4j.graphdb.Node> endNode_<%=cid%> = new java.util.HashMap<String,org.neo4j.graphdb.Node>();
+<%
 			for (IMetadataColumn column : columnList) {		    	
 		    	if (column instanceof MetadataColumnExt) {		    		
 		    		MetadataColumnExt columnExt = (MetadataColumnExt) column;		    		
@@ -184,9 +187,6 @@
 		}
 		
 		private void generateRelationshipCreation(Relationship relationship, IMetadataColumn column) {
-			%>
-			java.util.Map<String, org.neo4j.graphdb.Node> endNode_<%=cid%> = new java.util.HashMap<String,org.neo4j.graphdb.Node>();
-			<%
 			if (relationship.getIndex().getValue() != null && !relationship.getIndex().getValue().isEmpty()) {
 			%>
 				endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, indexNodeMap_<%=cid%>.get(<%=relationship.getIndex().getName()%>).get(<%=relationship.getIndex().getKey()%>, <%=relationship.getIndex().getValue()%>).getSingle());
@@ -204,7 +204,18 @@
 			}
 			%>
 			if (endNode_<%=cid%>.get(<%=relationship.getIndex().getName()%>) != null) {
-				<%
+<%
+				if(dataAction.equals("UPDATE") || dataAction.equals("INSERT_OR_UPDATE")) {
+%>
+					java.util.Iterator<org.neo4j.graphdb.Relationship> relationShipIterator_<%=cid%> = node_<%=cid%>.getRelationships().iterator();
+					while(relationShipIterator_<%=cid%>.hasNext()) {
+						org.neo4j.graphdb.Relationship relation_<%=cid%> = ((org.neo4j.graphdb.Relationship) relationShipIterator_<%=cid%>.next());
+						if(relation_<%=cid%>.getOtherNode(node_<%=cid%>).equals(endNode_<%=cid%>.get(<%=relationship.getIndex().getName()%>))) {
+							relation_<%=cid%>.delete();
+						}
+					}
+<%
+				}
 				switch (relationship.getDirection()) {
 					case OUTGOING :
 						%>		 	
@@ -280,16 +291,15 @@
 		
 		private void generateNode() {
 			%>
-			long node_<%=cid%> = inserter_<%=cid%>.createNode(properties_<%=cid%>);			
+			long node_<%=cid%> = inserter_<%=cid%>.createNode(properties_<%=cid%>);
+			java.util.Map<String, Long> endNode_<%=cid%> = new java.util.HashMap<String,Long>();
+			java.util.Map<String, Object> indexProperties_<%=cid%> = new java.util.HashMap<String, Object>();
+			java.util.Map<String, java.util.Map<String, Object>> indexPropertiesMap_<%=cid%> = new java.util.HashMap<String, java.util.Map<String, Object>>();
 			<%
 		}
 		
 		private void generateIndexCreation(Index index, IMetadataColumn column) {
 			boolean fromValueColumn = index.getValue() == null || index.getValue().isEmpty();
-			%>
-			java.util.Map<String, Object> indexProperties_<%=cid%> = new java.util.HashMap<String, Object>();
-			java.util.Map<String, java.util.Map<String, Object>> indexPropertiesMap_<%=cid%> = new java.util.HashMap<String, java.util.Map<String, Object>>();
-			<%
 			if (fromValueColumn) {
 				%>	    
 				indexProperties_<%=cid%>.put(<%=index.getKey()%>, <%=incomingConnName%>.<%=column%>);
@@ -316,7 +326,6 @@
 		
 		private void generateRelationshipCreation(Relationship relationship, IMetadataColumn column) {
 			%>
-			java.util.Map<String, Long> endNode_<%=cid%> = new java.util.HashMap<String,Long>();
 			endNode_<%=cid%>.put(<%=relationship.getIndex().getName()%>, 0L);
 			<%
 			if (relationship.getIndex().getValue() != null && !relationship.getIndex().getValue().isEmpty()) {
