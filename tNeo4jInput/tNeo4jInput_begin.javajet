@@ -18,7 +18,8 @@
     INode node = (INode)codeGenArgument.getArgument();
     String cid = node.getUniqueName();
     
-    boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));        
+    boolean useExistingConnection = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
+    boolean remoteServer = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__REMOTE_SERVER__"));        
     String query = ElementParameterParser.getValue(node, "__QUERY__");
     
     if (useExistingConnection) {
@@ -27,8 +28,7 @@
 		%>
 		org.neo4j.graphdb.GraphDatabaseService databaseService_<%=cid%> = (org.neo4j.graphdb.GraphDatabaseService) globalMap.get("<%=dbconn%>");
 	<%
-    } else {
-    	boolean remoteServer = "true".equalsIgnoreCase(ElementParameterParser.getValue(node, "__REMOTE_SERVER__"));
+    } else {    	
     	if (remoteServer) {
     		String serverUrl = ElementParameterParser.getValue(node, "__SERVER_URL__");
     		%>
@@ -43,10 +43,16 @@
     }
 %>
 
-org.neo4j.cypher.ExecutionEngine engine = new org.neo4j.cypher.ExecutionEngine(databaseService_<%=cid%>);
-org.neo4j.cypher.ExecutionResult result = engine.execute(<%=query%>);
-
-java.util.Iterator<java.util.Map<String, Object>> resultIterator_<%=cid%> = result.javaIterator();
+java.util.Iterator<java.util.Map<String, Object>> resultIterator_<%=cid%> = null;
+if (databaseService_<%=cid%> instanceof org.neo4j.rest.graphdb.RestGraphDatabase) {
+	org.neo4j.rest.graphdb.RestGraphDatabase restDatabase = (org.neo4j.rest.graphdb.RestGraphDatabase) databaseService_<%=cid%>; 
+	org.neo4j.rest.graphdb.query.QueryEngine queryEngine = new org.neo4j.rest.graphdb.query.RestCypherQueryEngine(restDatabase.getRestAPI());
+	resultIterator_<%=cid%> = queryEngine.query(<%=query%>, null).iterator();
+} else {
+	org.neo4j.cypher.ExecutionEngine engine = new org.neo4j.cypher.ExecutionEngine(databaseService_<%=cid%>);
+	org.neo4j.cypher.ExecutionResult result = engine.execute(<%=query%>);
+	resultIterator_<%=cid%> = result.javaIterator();
+}
 
 int nb_line_<%=cid%> = 0;
 String expression_<%=cid%> = "";
